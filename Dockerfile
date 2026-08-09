@@ -1,4 +1,4 @@
-﻿# FROM python:3.12-slim AS builder
+# FROM python:3.12-slim AS builder
 
 # ENV PYTHONDONTWRITEBYTECODE=1 \
 #     PYTHONUNBUFFERED=1
@@ -71,7 +71,7 @@ WORKDIR /app
 # "Permission denied (13)".
 USER root
 
-# Build-time toolchain. Only needed here â€” the runtime stage receives
+# Build-time toolchain. Only needed here ??? the runtime stage receives
 # pre-built artifacts and does not compile anything.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -87,8 +87,8 @@ COPY requirements.txt .
 # Single install pass, everything into /install so the runtime stage can
 # copy it wholesale.
 #
-# WAS: requirements.txt pulled the default (CUDA) torch â€” ~2.5GB of
-# nvidia wheels (cublas, cudnn, nccl, cusparselt, cusolver, â€¦) â€” and a
+# WAS: requirements.txt pulled the default (CUDA) torch ??? ~2.5GB of
+# nvidia wheels (cublas, cudnn, nccl, cusparselt, cusolver, ???) ??? and a
 # SECOND `RUN pip install torch --index-url .../cpu` tried to replace it.
 # That second command was missing `--prefix=/install`, so CPU torch went
 # to the builder's own /usr/local and was discarded with the stage. The
@@ -110,11 +110,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Same reason as the builder stage â€” needed before any apt call.
+# Same reason as the builder stage ??? needed before any apt call.
 USER root
 
 # Runtime needs only the shared libraries the compiled wheels link
-# against â€” not gcc or the -dev headers, which were build-only. Dropping
+# against ??? not gcc or the -dev headers, which were build-only. Dropping
 # them removes roughly 250MB from the final image.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
@@ -140,4 +140,4 @@ USER django
 
 EXPOSE 8000
 
-ENTRYPOINT ["sh", "/app/docker/entrypoint.sh"]
+ENTRYPOINT ["sh", "-c", "sed -i 's/\r$//' /app/docker/entrypoint.sh; exec sh /app/docker/entrypoint.sh"]
