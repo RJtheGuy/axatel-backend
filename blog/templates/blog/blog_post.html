@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+<!-- {% load wagtailcore_tags wagtailimages_tags %} -->
+ {% load %}
+
+{# BlogPosting Schema.org structured data — auto-injected #}
+{% block schema_org %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "{{ page.title }}",
+  "description": "{{ page.get_meta_description }}",
+  "datePublished": "{{ page.date|date:'c' }}",
+  "dateModified": "{{ page.last_published_at|date:'c' }}",
+  "author": {
+    "@type": "Person",
+    "name": "{{ page.author }}"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Axatel",
+    "url": "https://axatel.it"
+  }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<article class="container post-detail">
+
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <ol role="list">
+      <li><a href="/">Home</a></li>
+      <li><a href="/blog/">Blog</a></li>
+      <li aria-current="page">{{ page.title }}</li>
+    </ol>
+  </nav>
+
+  {% if page.cover_image %}
+    {% image page.cover_image width-1200 as hero_img %}
+    <img src="{{ hero_img.url }}" alt="{{ page.title }}" class="post-cover"
+         loading="lazy" width="{{ hero_img.width }}" height="{{ hero_img.height }}" />
+  {% endif %}
+
+  <header class="post-header">
+    <h1>{{ page.title }}</h1>
+    <p class="post-meta">
+      <time datetime="{{ page.date|date:'Y-m-d' }}">{{ page.date|date:"j F Y" }}</time>
+      &nbsp;·&nbsp; {{ page.author }}
+    </p>
+    {% if page.tags.all %}
+    <ul class="tag-list" role="list">
+      {% for tag in page.tags.all %}
+      <li><a href="/blog/?tag={{ tag.slug }}">#{{ tag }}</a></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </header>
+
+  {# Full StreamField body — same blocks as all other pages #}
+  <div class="streamfield-body post-body">
+    {% include_block page.body %}
+  </div>
+
+</article>
+{% endblock %}

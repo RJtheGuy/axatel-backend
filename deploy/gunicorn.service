@@ -1,0 +1,25 @@
+[Unit]
+Description=Axatel Gunicorn daemon
+After=network.target postgresql.service redis.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/axatel
+EnvironmentFile=/var/www/axatel/.env
+Environment="DJANGO_SETTINGS_MODULE=axatel.settings.production"
+ExecStart=/var/www/axatel/venv/bin/gunicorn \
+    --workers 4 \
+    --worker-class sync \
+    --bind 127.0.0.1:8000 \
+    --timeout 60 \
+    --access-logfile /var/log/gunicorn/axatel_access.log \
+    --error-logfile  /var/log/gunicorn/axatel_error.log \
+    axatel.wsgi:application
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

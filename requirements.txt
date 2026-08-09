@@ -1,0 +1,101 @@
+# wagtail>=6.0,<7.0
+# django>=5.0,<6.0
+
+# # Database drivers — uncomment the one you need
+# psycopg2-binary>=2.9          # PostgreSQL
+# # mysqlclient>=2.2            # MySQL / MariaDB
+# # mssql-django>=1.4           # Microsoft SQL Server
+
+# # Static files
+# whitenoise>=6.6
+
+# # Production server
+# gunicorn>=21.2
+
+# # SEO toolkit for Wagtail (adds site-wide OG, Twitter, GA settings)
+# wagtail-seo>=2.4
+
+# # Environment variables
+# python-dotenv>=1.0
+
+# # Image processing (required by Wagtail)
+# Pillow>=10.2
+
+# # Cache
+# django-redis>=5.4
+# redis>=5.0
+
+# # Dev utilities
+# django-extensions>=3.2
+
+# # WordPress XML import
+# beautifulsoup4>=4.12
+# lxml>=5.1
+# wagtail-headless-preview>=0.8
+# django-cors-headers>=4.3
+
+# sentence-transformers
+# numpy
+
+# dj-database-url>=2.1.0
+
+
+wagtail>=6.0,<7.0
+django>=5.0,<6.0
+
+# Database drivers — uncomment the one you need
+psycopg2-binary>=2.9          # PostgreSQL
+# mysqlclient>=2.2            # MySQL / MariaDB
+# mssql-django>=1.4           # Microsoft SQL Server
+
+# Static files
+whitenoise>=6.6
+
+# Production server
+gunicorn>=21.2
+
+# SEO toolkit for Wagtail (adds site-wide OG, Twitter, GA settings)
+wagtail-seo>=2.4
+
+# Environment variables
+python-dotenv>=1.0
+
+# Image processing (required by Wagtail)
+Pillow>=10.2
+
+# Cache
+django-redis>=5.4
+redis>=5.0
+
+# Dev utilities
+django-extensions>=3.2
+
+# WordPress XML import
+beautifulsoup4>=4.12
+lxml>=5.1
+wagtail-headless-preview>=0.8
+django-cors-headers>=4.3
+
+# ── Chatbot embeddings ────────────────────────────────────────────────
+# torch is a transitive dependency of sentence-transformers. Left
+# undeclared it resolves from PyPI to the CUDA build, which drags in
+# ~2.5GB of nvidia wheels (cublas, cudnn, nccl, cusparselt, cusolver,
+# cufft, curand, …) — none of which can be used in a CPU-only container.
+# That alone accounted for roughly 7.6GB of the built image.
+#
+# Declaring it here with the +cpu local version forces the CPU wheel:
+# that build exists ONLY on the PyTorch index, so the resolver cannot
+# silently fall back to the CUDA one from PyPI.
+#
+# The version is pinned deliberately. `torch` unpinned with an
+# --extra-index-url is not reliable — pip can still pick the PyPI build
+# depending on version ordering. When upgrading, check what the CPU
+# index actually offers:
+#   https://download.pytorch.org/whl/cpu/torch/
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.13.0+cpu
+
+sentence-transformers
+numpy
+
+dj-database-url>=2.1.0

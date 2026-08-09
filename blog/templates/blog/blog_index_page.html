@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+<!-- {% load wagtailcore_tags %} -->
+ {% load %}
+
+{% block content %}
+<section class="container">
+  <h1 class="page-title">{{ page.title }}</h1>
+
+  {% if page.intro %}
+  <div class="streamfield-body page-intro">
+    {% include_block page.intro %}
+  </div>
+  {% endif %}
+
+  {% if active_tag %}
+  <div class="tag-filter-active">
+    <p>Filtro attivo: <strong>#{{ active_tag }}</strong> —
+      <a href="{{ page.url }}">Rimuovi filtro</a>
+    </p>
+  </div>
+  {% endif %}
+
+  <ul class="blog-cards" role="list">
+    {% for post in posts %}
+    <li class="blog-card">
+      <time datetime="{{ post.specific.date|date:'Y-m-d' }}">
+        {{ post.specific.date|date:"j F Y" }}
+      </time>
+      <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
+      <p>{{ post.specific.intro }}</p>
+      <a href="{{ post.url }}" class="btn btn--ghost btn--sm">Leggi articolo</a>
+    </li>
+    {% empty %}
+    <li><p>Nessun articolo pubblicato ancora.</p></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}
