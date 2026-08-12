@@ -1,6 +1,4 @@
 """
-core/theme_utils.py
-
 Derives a full semantic color palette from the two colors an editor
 actually picks (primary, background). Editors choose a brand color; they
 don't hand-pick "success green" or "border gray" — those are computed so

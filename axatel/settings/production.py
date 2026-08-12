@@ -1,8 +1,4 @@
-"""
-Production settings.
-Set environment variable: DJANGO_SETTINGS_MODULE=axatel.settings.production
-All secrets come from the .env file — never hardcode them here.
-"""
+
 from .base import *
 
 DEBUG         = False

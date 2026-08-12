@@ -1,6 +1,4 @@
 """
-chatbot/management/commands/seed_chatbot_kb.py
-
 One-time seeder: turns the ~20 hardcoded entries in chatbot/kb_seed_data.py
 into real ChatbotEntry rows, so the chatbot has something to say on a
 fresh install, and so an editor has real examples to copy the pattern

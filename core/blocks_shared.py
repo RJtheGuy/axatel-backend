@@ -1,15 +1,3 @@
-"""
-core/blocks_shared.py
-
-Constants shared between blocks.py and blocks_sections.py. Lives in its
-own module, imported by both, on purpose: blocks.py already imports
-FROM blocks_sections.py (for SolutionCardsBlock, TestimonialBlock, etc.),
-so if blocks_sections.py also imported these constants directly from
-blocks.py, the two files would import each other - a circular import
-that fails at Django startup with "partially initialized module".
-A third, dependency-free module breaks that cycle.
-"""
-
 # Shared choice list for every block that gets a "variant" field (Hero,
 # Testimonial, Stats).
 SECTION_VARIANT_CHOICES = [
@@ -50,28 +38,7 @@ from wagtail.rich_text import expand_db_html
 
 
 def _absolutize_media_urls(html: str) -> str:
-    """
-    expand_db_html() resolves image/document embeds using each file's
-    MEDIA_URL-relative path (e.g. src="/media/images/foo.png") - correct
-    when the site serving pages is the same origin serving media, wrong
-    here since the Nuxt frontend runs on a different origin
-    (localhost:3000 in dev) than Django (localhost:8001 / the real
-    domain in production). A relative src resolves against the
-    FRONTEND's own origin, which doesn't serve /media/ at all - and
-    worse, Nuxt's catch-all page route then treats that path as an
-    unmatched page slug and 404s the whole page, not just the image.
 
-    Same fix ImageAPIField in api_blocks.py already applies via
-    `rendition.full_url` instead of `.url` - this does the equivalent
-    for embeds resolved through expand_db_html(), which has no
-    absolute-URL option of its own to pass in.
-
-    WAGTAILADMIN_BASE_URL is the standard Wagtail setting for exactly
-    this (also what full_url uses internally) - if it isn't set,
-    embedded media/document URLs are left relative rather than
-    guessing, so a misconfiguration is visible (broken image) instead
-    of silently pointing at the wrong host.
-    """
     base = getattr(settings, "WAGTAILADMIN_BASE_URL", None)
     if not base:
         return html

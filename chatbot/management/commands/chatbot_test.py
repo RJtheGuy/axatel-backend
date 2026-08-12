@@ -1,5 +1,4 @@
 """
-chatbot/management/commands/chatbot_test.py
 
 Runs every question currently in the database (ChatbotEntry, editable
 from Snippets -> Voci chatbot) back through the engine, or a single

@@ -1,7 +1,5 @@
 """
-core/wagtail_hooks.py
-
-STEP 2 of the theme rollout: adds "Evidenzia" (highlight) as a Draftail
+adds "Evidenzia" (highlight) as a Draftail
 inline style, alongside the built-in bold/italic. It's the mechanism
 that answers "some text bold, some not, in the same paragraph" for
 color instead of weight - an editor selects a phrase and applies it,
@@ -15,12 +13,6 @@ already part of the theme, and if the theme's accent color changes
 later, every highlighted phrase across the whole site updates with it
 automatically. No per-instance hex ever gets stored in page content.
 
-VERIFY the Draftail import paths below against your installed Wagtail
-version before relying on this - the featureset API has moved between
-Wagtail major versions (see the similar VERIFY note in blog/models.py
-for the tags__name filter). If `InlineStyleFeature` has moved, Wagtail's
-own rich text docs for "Adding a feature to the Draftail editor" show
-the current path.
 """
 
 from wagtail import hooks

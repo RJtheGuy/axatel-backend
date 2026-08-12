@@ -1,6 +1,4 @@
 """
-core/settings_views.py
-
 Exposes wagtail.contrib.settings models over the API.
 
 Settings are not pages, so they are not part of the Wagtail pages API.

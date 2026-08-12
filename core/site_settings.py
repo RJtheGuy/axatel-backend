@@ -1,16 +1,9 @@
 """
-core/site_settings.py
-
 Site-wide content that is not page content: navbar links, the header
 CTA, footer contacts, company registration details.
 
 These live in wagtail.contrib.settings rather than on a page because
-they appear on EVERY page. Putting them on HomePage would mean the
-footer silently breaks on any page that isn't the homepage, and an
-editor would have to know that "the footer lives on the home page" -
-which is exactly the kind of hidden coupling that makes a CMS annoying
-to use.
-
+they appear on EVERY page.
 Editors find these under Impostazioni in the Wagtail admin sidebar.
 """
 
@@ -22,14 +15,7 @@ from wagtail.fields import StreamField
 
 
 class NavLinkBlock(blocks.StructBlock):
-    """One navbar entry.
 
-    `url` is a free CharBlock rather than a PageChooserBlock on purpose:
-    the current navbar points at on-page anchors (#applicativi,
-    #settori), which are not pages at all. A PageChooserBlock would also
-    serialize to a bare integer ID over the API - see the note in
-    core/blocks.py about ServiceCardsBlock.
-    """
     label = blocks.CharBlock(max_length=40, help_text="Testo del link, es. 'Applicativi'")
     url = blocks.CharBlock(
         max_length=200,

@@ -1,6 +1,4 @@
 """
-chatbot/models.py
-
 ChatbotEntry: makes the chatbot's actual knowledge - the Q&A pairs that
 used to be the hardcoded KNOWLEDGE_BASE list in engine.py - editable
 from the CMS instead of requiring a developer to edit Python and

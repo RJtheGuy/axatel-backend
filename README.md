@@ -63,8 +63,8 @@ python manage.py runserver
 ```
 
 Then open:
-- **Site:**      http://127.0.0.1:8000/
-- **CMS admin:** http://127.0.0.1:8000/cms/
+- **Site:**      http://0.0.0.0:port/
+- **CMS admin:** http://0.0.0.0:port/cms/
 
 ---
 
@@ -135,16 +135,16 @@ The default is PostgreSQL. Change four lines in `axatel/settings/base.py`:
 **MySQL / MariaDB (in-house server):**
 ```python
 "ENGINE": "django.db.backends.mysql",
-"HOST":   "192.168.1.50",  # your server IP
-"PORT":   "3306",
+"HOST":   "0.0.0.0",  # your server IP
+"PORT":   "****",
 ```
 Add `mysqlclient>=2.2` to requirements.txt.
 
 **Microsoft SQL Server:**
 ```python
 "ENGINE": "mssql",
-"HOST":   "192.168.1.50\\SQLEXPRESS",
-"PORT":   "1433",
+"HOST":   "0.0.0.0\\SQLEXPRESS",
+"PORT":   "***",
 ```
 Add `mssql-django>=1.4` to requirements.txt.
 
