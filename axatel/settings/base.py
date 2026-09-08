@@ -14,14 +14,17 @@ ALLOWED_HOSTS = [
     "localhost",      
     "127.0.0.1",
     "web",            
+    "localhost",     
+    "127.0.0.1",
+    "web",           
 ]
 
 INSTALLED_APPS = [
     "wagtail.contrib.forms",
-    "wagtail.contrib.redirects",     # 301/302 from admin, no plugin needed
-    "wagtail.contrib.sitemaps",      # auto sitemap.xml
+    "wagtail.contrib.redirects",     
+    "wagtail.contrib.sitemaps",      
     "wagtail.contrib.routable_page",
-    "wagtail.embeds",                # YouTube/Vimeo in VideoBlock
+    "wagtail.embeds",                
     "wagtail.sites",
     "wagtail.users",
     "wagtail.snippets",
@@ -45,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sitemaps",
     "wagtailseo",                    # site-wide SEO panel + Twitter Cards
+    "wagtailseo",                    
     "core",
     "home",
     "services",
@@ -59,7 +63,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",       # fast static file serving
+    "whitenoise.middleware.WhiteNoiseMiddleware",       
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

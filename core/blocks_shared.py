@@ -1,4 +1,3 @@
-
 SECTION_VARIANT_CHOICES = [
     ("default", "Predefinito"),
     ("accent", "Accento"),

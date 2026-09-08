@@ -1,6 +1,4 @@
 """
-casi/casi_data.py
-
 The nine success cases, lifted verbatim from the hardcoded
 `dashboardConfig.successCases.items` array that used to live in
 frontend/app/pages/index.vue.

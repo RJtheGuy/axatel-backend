@@ -1,23 +1,3 @@
-
-"""
-Casi di successo as real Wagtail pages, replacing the hardcoded array
-that previously lived in frontend/app/pages/index.vue.
-
-Why pages and not a StreamField block: each case is a full article with
-its own slug route (/casi/<slug>), client, category, tag set and
-multi-section HTML body. The existing `portfolio_grid` block in
-core/blocks_sections.py is card-shaped (image/title/client/excerpt/url)
-and would drop the routing, tags and per-case SEO entirely.
-
-Structurally this mirrors blog.BlogIndexPage / blog.BlogPost - same
-parent/child arrangement, same tagging approach - so anything already
-built against the blog API shape works here with minimal changes.
-
-STEP 3 of the theme rollout adds "highlight" to body's features list -
-see core/wagtail_hooks.py for what that feature does. Purely additive:
-existing case-study bodies that never used it are unaffected.
-"""
-
 from django.db import models
 from modelcluster.contrib.taggit import ClusterTaggableManager
 from modelcluster.fields import ParentalKey

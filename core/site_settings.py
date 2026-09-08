@@ -16,6 +16,13 @@ class NavSubLinkBlock(blocks.StructBlock):
         max_length=200, required=False,
         help_text="Usa SOLO per ancore (#sezione) o link esterni. Ignorato se sopra è selezionata una pagina.",
     )
+
+class NavSubLinkBlock(blocks.StructBlock):
+    label = blocks.CharBlock(max_length=40, help_text="Testo del link, es. 'Applicativi'")
+    url = blocks.CharBlock(
+        max_length=200,
+        help_text="Percorso o ancora, es. '/casi' oppure '/#applicativi'",
+    )
     open_in_new_tab = blocks.BooleanBlock(required=False, default=False)
 
     class Meta:
