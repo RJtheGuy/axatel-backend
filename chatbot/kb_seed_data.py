@@ -1,16 +1,3 @@
-"""
-chatbot/kb_seed_data.py
-
-The original hardcoded chatbot knowledge base - previously the
-KNOWLEDGE_BASE constant inside engine.py. Moved here unchanged, now
-used only by `manage.py seed_chatbot_kb` to populate the real,
-CMS-editable ChatbotEntry table on first setup.
-
-engine.py no longer reads this directly - it queries ChatbotEntry from
-the database instead. This file exists purely as seed data / a starting
-point, and as a reference for the shape editors are recreating when
-they add entries through Snippets → Voci chatbot in the Wagtail admin.
-"""
 
 KNOWLEDGE_BASE = [
     {

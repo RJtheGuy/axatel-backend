@@ -3,8 +3,12 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .engine import engine
 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 
 @csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def chat(request):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)

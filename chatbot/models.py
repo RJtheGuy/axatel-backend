@@ -1,32 +1,3 @@
-"""
-chatbot/models.py
-
-ChatbotEntry: makes the chatbot's actual knowledge - the Q&A pairs that
-used to be the hardcoded KNOWLEDGE_BASE list in engine.py - editable
-from the CMS instead of requiring a developer to edit Python and
-redeploy. ChatbotSettings (core/site_settings.py) already covers the
-widget's presentation (title, welcome message, placeholder, suggested
-chips); this covers what it actually knows how to answer.
-
-A Wagtail Snippet, not a Page: entries have no URL and no place in the
-page tree - closer in shape to the theme system before it was
-simplified to a single settings row. Unlike the theme, there ARE meant
-to be many of these (the original KNOWLEDGE_BASE had ~20 entries), so
-this stays a real list of rows rather than folding into one settings
-object.
-
-`questions` is a plain multi-line text field - one phrasing per line -
-rather than a StreamField of CharBlocks. A list of short strings
-doesn't need StreamField's block-editing machinery; "type one question
-per line, one per language if you want both" is a simpler instruction
-for a non-technical editor than "add a block, type, repeat."
-
-`answer` stays plain text on purpose, not rich text: chatbot/views.py
-sends it straight into the chat widget as a JSON string
-(`{"response": answer}`), not rendered as HTML - rich text here would
-mean either stripping tags before sending or teaching the chat widget
-to render HTML, neither of which the current widget does.
-"""
 
 from django.db import models
 from django.db.models import Q
@@ -55,8 +26,7 @@ class ChatbotEntry(models.Model):
                    "Se provi ad attivarla su una seconda voce, il salvataggio "
                    "darà errore - disattivala prima sull'altra.",
     )
-    # Read by ChatbotEngine to detect edits without a restart - see the
-    # comment above ChatbotEngine._ensure_loaded() in engine.py.
+
     updated_at = models.DateTimeField(auto_now=True)
 
     panels = [
@@ -83,8 +53,4 @@ class ChatbotEntry(models.Model):
 
     @property
     def questions_list(self) -> list[str]:
-        """One entry per non-empty line - what ChatbotEngine actually
-        indexes. Blank lines (easy to leave in a Textarea) are dropped
-        rather than becoming an empty-string "question" that could
-        never realistically match anything."""
         return [q.strip() for q in self.questions.splitlines() if q.strip()]

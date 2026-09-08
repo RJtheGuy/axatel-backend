@@ -30,24 +30,6 @@ class BlogIndexPage(SeoMixin, Page):
 
     parent_page_types = ["home.HomePage"]
     subpage_types = ["blog.BlogPost"]
-
-    # NOTE: get_context() has been removed.
-    #
-    # It built `posts` and `active_tag` from request.GET.get("tag"), but
-    # get_context() only runs on Wagtail's own template-serving path
-    # (Page.serve()). The API viewset never calls it, so under the
-    # headless frontend the tag filter silently did nothing.
-    #
-    # The Nuxt blog index queries child posts directly instead:
-    #   /api/v2/pages/?type=blog.BlogPost&child_of=<id>&order=-first_published_at
-    #   /api/v2/pages/?type=blog.BlogPost&child_of=<id>&tags__name=<slug>
-    #
-    # VERIFY the tags__name variant against a running instance before
-    # relying on it — Wagtail's default FieldsFilter may not traverse a
-    # taggit m2m cleanly. If it 400s or ignores the filter, add a custom
-    # BaseFilterBackend to CustomPagesAPIViewSet.filter_backends in
-    # core/api.py that applies queryset.filter(tags__name=value).
-
     content_panels = Page.content_panels + [FieldPanel("intro")]
     promote_panels = SeoMixin.promote_panels
 
@@ -74,11 +56,6 @@ class BlogPost(SeoMixin, Page):
         APIField("date"),
         APIField("intro"),
         APIField("body"),
-        # cover_image and tags need explicit serializers: a bare
-        # APIField() on a ForeignKey to Image emits a different shape
-        # than ImageChooserBlock does inside StreamField, and a
-        # ClusterTaggableManager isn't DRF-serializable at all.
-        # Using these keeps one Vue component working for both cases.
         APIField("cover_image", serializer=ImageAPIField()),
         APIField("tags", serializer=TagListField()),
     ]

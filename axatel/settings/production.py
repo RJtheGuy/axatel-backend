@@ -1,14 +1,9 @@
-"""
-Production settings.
-Set environment variable: DJANGO_SETTINGS_MODULE=axatel.settings.production
-All secrets come from the .env file — never hardcode them here.
-"""
+
 from .base import *
 
 DEBUG         = False
 ALLOWED_HOSTS = ["axatel.it", "www.axatel.it"]
 
-# ─── HTTPS & Security headers ──────────────────────────────────────────────────
 SECURE_SSL_REDIRECT            = True
 SECURE_HSTS_SECONDS            = 31536000   # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -18,7 +13,6 @@ CSRF_COOKIE_SECURE             = True
 SECURE_CONTENT_TYPE_NOSNIFF    = True
 X_FRAME_OPTIONS                = "DENY"
 
-# ─── Email ─────────────────────────────────────────────────────────────────────
 EMAIL_BACKEND       = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST          = os.environ.get("EMAIL_HOST",     "smtp.sendgrid.net")
 EMAIL_PORT          = 587
@@ -28,7 +22,6 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL  = "noreply@axatel.it"
 SERVER_EMAIL        = "errors@axatel.it"
 
-# ─── Logging ───────────────────────────────────────────────────────────────────
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

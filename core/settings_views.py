@@ -1,16 +1,3 @@
-"""
-core/settings_views.py
-
-Exposes wagtail.contrib.settings models over the API.
-
-Settings are not pages, so they are not part of the Wagtail pages API.
-The frontend needs them on every page load (navbar, footer, chat
-widget), so they get one endpoint returning all of them together -
-one request rather than three.
-
-    GET /api/v2/site-settings/
-"""
-
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from wagtail.models import Site
@@ -42,12 +29,17 @@ def _stream_to_list(stream) -> list:
     return [dict(block.value) for block in stream]
 
 
-class SiteSettingsView(APIView):
-    """Everything the shell of the site needs, in one call.
+def _stream_via_api_repr(stream) -> list:
 
-    Falls back to sensible defaults when a settings object has never
-    been saved, so a fresh install renders rather than erroring.
-    """
+    if not stream:
+        return []
+    return [
+        block.block.get_api_representation(block.value)
+        for block in stream
+    ]
+
+
+class SiteSettingsView(APIView):
 
     def get(self, request):
         site = Site.find_for_request(request)
@@ -58,7 +50,7 @@ class SiteSettingsView(APIView):
 
         return Response({
             "navigation": {
-                "links": _stream_to_list(nav.links),
+                "items": _stream_via_api_repr(nav.items),
                 "cta": {
                     "visible": nav.cta_visible,
                     "label": nav.cta_label,

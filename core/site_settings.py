@@ -1,45 +1,119 @@
-"""
-core/site_settings.py
-
-Site-wide content that is not page content: navbar links, the header
-CTA, footer contacts, company registration details.
-
-These live in wagtail.contrib.settings rather than on a page because
-they appear on EVERY page. Putting them on HomePage would mean the
-footer silently breaks on any page that isn't the homepage, and an
-editor would have to know that "the footer lives on the home page" -
-which is exactly the kind of hidden coupling that makes a CMS annoying
-to use.
-
-Editors find these under Impostazioni in the Wagtail admin sidebar.
-"""
-
 from django.db import models
 from wagtail import blocks
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from wagtail.fields import StreamField
+from core.api_blocks import PageChooserBlock
 
 
-class NavLinkBlock(blocks.StructBlock):
-    """One navbar entry.
-
-    `url` is a free CharBlock rather than a PageChooserBlock on purpose:
-    the current navbar points at on-page anchors (#applicativi,
-    #settori), which are not pages at all. A PageChooserBlock would also
-    serialize to a bare integer ID over the API - see the note in
-    core/blocks.py about ServiceCardsBlock.
-    """
-    label = blocks.CharBlock(max_length=40, help_text="Testo del link, es. 'Applicativi'")
-    url = blocks.CharBlock(
-        max_length=200,
-        help_text="Percorso o ancora, es. '/casi' oppure '/#applicativi'",
+class NavSubLinkBlock(blocks.StructBlock):
+    label = blocks.CharBlock(max_length=60, help_text="Testo del link, es. 'Sensori'")
+    page = PageChooserBlock(
+        required=False,
+        help_text="Preferito: collega una pagina reale del sito. L'URL resta sempre corretto anche se cambia lo slug.",
+    )
+    custom_url = blocks.CharBlock(
+        max_length=200, required=False,
+        help_text="Usa SOLO per ancore (#sezione) o link esterni. Ignorato se sopra è selezionata una pagina.",
     )
     open_in_new_tab = blocks.BooleanBlock(required=False, default=False)
 
     class Meta:
         icon = "link"
-        label = "Link di navigazione"
+        label = "Link"
+
+    def get_api_representation(self, value, context=None):
+        page_block = self.child_blocks["page"]
+        page_repr = page_block.get_api_representation(value.get("page"), context=context) if value.get("page") else None
+        return {
+            "label": value.get("label", ""),
+            "href": page_repr["url"] if page_repr else value.get("custom_url", ""),
+            "open_in_new_tab": bool(value.get("open_in_new_tab")),
+        }
+
+
+class NavGroupBlock(blocks.StructBlock):
+    label = blocks.CharBlock(max_length=60, help_text="Titolo colonna, es. 'Piattaforme'")
+    links = blocks.ListBlock(NavSubLinkBlock())
+
+    class Meta:
+        icon = "list-ul"
+        label = "Gruppo (colonna del menu a tendina)"
+
+    def get_api_representation(self, value, context=None):
+        links_block = self.child_blocks["links"]
+        return {
+            "label": value.get("label", ""),
+            "links": links_block.get_api_representation(value.get("links", []), context=context),
+        }
+
+
+class NavItemBlock(blocks.StructBlock):
+    """One entry in the top navbar. Leave `groups` empty for a plain
+    direct link (e.g. 'Casi di successo'); fill it in for a dropdown
+    (e.g. 'Come lo realizziamo?')."""
+    label = blocks.CharBlock(max_length=60)
+    page = PageChooserBlock(required=False, help_text="Per un link diretto senza tendina.")
+    custom_url = blocks.CharBlock(max_length=200, required=False)
+    groups = blocks.ListBlock(
+        NavGroupBlock(), required=False,
+        help_text="Aggiungi una o più colonne per un menu a tendina. Lascia vuoto per un link diretto.",
+    )
+
+    class Meta:
+        icon = "arrow-down-big"
+        label = "Voce di menu"
+
+    def get_api_representation(self, value, context=None):
+        page_block = self.child_blocks["page"]
+        groups_block = self.child_blocks["groups"]
+        page_repr = page_block.get_api_representation(value.get("page"), context=context) if value.get("page") else None
+        return {
+            "label": value.get("label", ""),
+            "href": page_repr["url"] if page_repr else (value.get("custom_url") or None),
+            "groups": groups_block.get_api_representation(value.get("groups", []), context=context),
+        }
+
+
+@register_setting(icon="list-ul")
+class NavigationSettings(BaseSiteSetting):
+    """Navbar structure + the header CTA button.
+
+    STEP: replaces the old flat `links` StreamField (NavLinkBlock) with
+    `items` (NavItemBlock), which can represent grouped dropdowns.
+    """
+
+    items = StreamField(
+        [("item", NavItemBlock())],
+        use_json_field=True,
+        blank=True,
+        verbose_name="Voci del menu",
+        help_text="Ordine e contenuto del menu principale, incluse le tendine.",
+    )
+
+    cta_label = models.CharField(
+        max_length=60, blank=True, default="Parla con un esperto",
+        verbose_name="Testo pulsante header",
+    )
+    cta_url = models.CharField(
+        max_length=200, blank=True, default="/contatti",
+        verbose_name="URL pulsante header",
+    )
+    cta_visible = models.BooleanField(
+        default=True, verbose_name="Mostra pulsante header",
+    )
+
+    panels = [
+        FieldPanel("items"),
+        MultiFieldPanel([
+            FieldPanel("cta_visible"),
+            FieldPanel("cta_label"),
+            FieldPanel("cta_url"),
+        ], heading="Pulsante header"),
+    ]
+
+    class Meta:
+        verbose_name = "Navigazione"
 
 
 class FooterContactBlock(blocks.StructBlock):
@@ -56,51 +130,9 @@ class FooterContactBlock(blocks.StructBlock):
         label = "Contatto footer"
 
 
-@register_setting(icon="list-ul")
-class NavigationSettings(BaseSiteSetting):
-    """Navbar links + the header CTA button."""
-
-    links = StreamField(
-        [("link", NavLinkBlock())],
-        use_json_field=True,
-        blank=True,
-        verbose_name="Link del menu",
-        help_text="Ordine e contenuto del menu principale.",
-    )
-
-    cta_label = models.CharField(
-        max_length=60, blank=True, default="Parla con un esperto",
-        verbose_name="Testo pulsante header",
-    )
-    cta_url = models.CharField(
-        max_length=200, blank=True, default="/contatti",
-        verbose_name="URL pulsante header",
-    )
-    cta_visible = models.BooleanField(
-        default=True, verbose_name="Mostra pulsante header",
-    )
-
-    panels = [
-        FieldPanel("links"),
-        MultiFieldPanel([
-            FieldPanel("cta_visible"),
-            FieldPanel("cta_label"),
-            FieldPanel("cta_url"),
-        ], heading="Pulsante header"),
-    ]
-
-    class Meta:
-        verbose_name = "Navigazione"
-
-
 @register_setting(icon="site")
 class FooterSettings(BaseSiteSetting):
-    """Footer contacts and company registration details.
-
-    Previously hardcoded in pages/index.vue, which meant they were
-    duplicated into every page that rendered a footer and could only be
-    changed by a developer.
-    """
+    """Footer contacts and company registration details."""
 
     contacts = StreamField(
         [("contact", FooterContactBlock())],
@@ -149,14 +181,6 @@ class ChatbotSettings(BaseSiteSetting):
         verbose_name="Testo segnaposto",
     )
 
-    # Quick-reply chips shown under the welcome message.
-    #
-    # These should be phrased the way a visitor would actually ask, not
-    # as menu labels: the answer is chosen by semantic similarity
-    # against KNOWLEDGE_BASE in chatbot/engine.py, so "Dove siete?"
-    # matches far better than "Sede". A chip that scores below
-    # ChatbotEngine.THRESHOLD falls through to the generic fallback
-    # answer, which looks broken - test each one after adding it.
     suggestions = StreamField(
         [("suggestion", blocks.CharBlock(
             max_length=80,

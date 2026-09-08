@@ -17,18 +17,13 @@ class HomePage(SeoMixin, Page):
         APIField("hero_description"),
         APIField("hero_cta_label"),
         APIField("hero_cta_url"),
-        # ── Fields backing HeroParticelle.vue ──
         APIField("hero_frasi"),
         APIField("hero_quote_text"),
         APIField("hero_cases_logo", serializer=ImageAPIField()),
         APIField("body"),
     ]
 
-    # NOTE: the four hero_tagline/description/cta_* fields below are NOT
-    # currently consumed by the Nuxt homepage — HeroParticelle.vue takes
-    # frasi / quoteText / casesLogoAsset instead. They're left in place
-    # because they may be used elsewhere (or by a future hero variant);
-    # confirm before removing, since dropping them needs a migration.
+    
     hero_tagline = models.CharField(
         max_length=120, default="Connettività e telefonia per il tuo business",
         verbose_name="Tagline hero",
@@ -46,11 +41,7 @@ class HomePage(SeoMixin, Page):
         verbose_name="URL pulsante hero",
     )
 
-    # ── Hero a particelle ────────────────────────────────────────────
-    # A StreamField of plain CharBlocks rather than a JSONField: gives
-    # editors add/remove/reorder controls in the admin for free, and
-    # serializes as a clean list of {type, value, id} the frontend maps
-    # over. Order matters — it's the rotation order of the phrases.
+    
     hero_frasi = StreamField(
         [("frase", blocks.CharBlock(
             max_length=200,
@@ -87,6 +78,8 @@ class HomePage(SeoMixin, Page):
         "blog.BlogIndexPage",
         "home.FlexPage",
         "casi.CasiIndexPage",
+        "monitoring.MonitoringIndexPage",
+        "solutions.SolutionsIndexPage",
     ]
 
     content_panels = Page.content_panels + [
@@ -110,14 +103,6 @@ class HomePage(SeoMixin, Page):
         verbose_name = "Home Page"
 
 
-# Mapping of slug → template for one-off custom pages.
-#
-# DEAD UNDER HEADLESS: this dict and the get_template() override below
-# only apply to Django's own template-serving path. The Nuxt frontend
-# fetches JSON from /api/v2/ and never renders a Django template, so
-# these have no effect. Kept (commented) rather than deleted in case the
-# Django-rendered path is ever needed again — do not "fix" by
-# uncommenting unless you're deliberately re-enabling that path.
 FLEX_PAGE_TEMPLATES = {
     "conosci-axatel":           "home/conosci_axatel_page.html",
     "iot":                      "home/iot_page.html",
