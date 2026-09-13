@@ -121,6 +121,7 @@ After=network.target mariadb.service redis-server.service
 User=www-data
 Group=www-data
 WorkingDirectory=$APP_ROOT
+Environment=HOME=$APP_ROOT
 EnvironmentFile=$APP_ROOT/.env
 Environment=DJANGO_SETTINGS_MODULE=axatel.settings.production
 ExecStart=$APP_ROOT/venv/bin/gunicorn --workers 4 --bind 127.0.0.1:8000 --timeout 60 axatel.wsgi:application
