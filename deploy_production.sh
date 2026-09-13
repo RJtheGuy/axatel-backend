@@ -108,6 +108,7 @@ else
 fi
 sudo mkdir -p "$APP_ROOT/media" "$APP_ROOT/logs" "$APP_ROOT/staticfiles"
 sudo chown -R www-data:www-data "$APP_ROOT/media" "$APP_ROOT/logs" "$APP_ROOT/staticfiles"
+sudo install -d -o www-data -g www-data "$APP_ROOT/.home"
 sudo -u www-data env DJANGO_SETTINGS_MODULE=axatel.settings.production "$APP_ROOT/venv/bin/python" "$APP_ROOT/manage.py" migrate --noinput
 sudo -u www-data env DJANGO_SETTINGS_MODULE=axatel.settings.production "$APP_ROOT/venv/bin/python" "$APP_ROOT/manage.py" collectstatic --noinput
 sudo -u www-data env DJANGO_SETTINGS_MODULE=axatel.settings.production "$APP_ROOT/venv/bin/python" "$APP_ROOT/manage.py" check
@@ -121,7 +122,7 @@ After=network.target mariadb.service redis-server.service
 User=www-data
 Group=www-data
 WorkingDirectory=$APP_ROOT
-Environment=HOME=$APP_ROOT
+Environment=HOME=$APP_ROOT/.home
 EnvironmentFile=$APP_ROOT/.env
 Environment=DJANGO_SETTINGS_MODULE=axatel.settings.production
 ExecStart=$APP_ROOT/venv/bin/gunicorn --workers 4 --bind 127.0.0.1:8000 --timeout 60 axatel.wsgi:application
