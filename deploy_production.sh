@@ -64,6 +64,18 @@ SQL
 # Keep Django's connection collation consistent with the database defaults.
 sudo mysql -u root -e "ALTER DATABASE \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
+# A rerun may have tables from a migration that stopped part-way through.
+# ALTER DATABASE changes defaults only; convert existing tables as well.
+sudo mysql -u root -N -B -e "
+SELECT CONCAT(
+    'ALTER TABLE ', TABLE_NAME,
+    ' CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
+)
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = '${DB_NAME}'
+    AND TABLE_TYPE = 'BASE TABLE';
+" | sudo mysql -u root "$DB_NAME"
+
 sudo mkdir -p /var/www
 if [[ ! -d "$APP_ROOT/.git" ]]; then sudo git clone "$BACKEND_REPO_URL" "$APP_ROOT"; fi
 if [[ ! -d "$FRONTEND_ROOT/.git" ]]; then sudo git clone "$FRONTEND_REPO_URL" "$FRONTEND_ROOT"; fi
