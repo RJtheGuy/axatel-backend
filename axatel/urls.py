@@ -11,6 +11,7 @@ from wagtail.documents import urls as wagtaildocs_urls
 from core.api import api_router
 from core.theme_views import ActiveThemeView, RestoreThemeView
 from core.settings_views import SiteSettingsView
+from core.contact_views import ContactSubmitView
 from seo.views import robots_txt
 
 urlpatterns = [
@@ -28,6 +29,7 @@ urlpatterns = [
 
     path("api/v2/chatbot/", include("chatbot.urls")),
     path("api/v2/site-settings/", SiteSettingsView.as_view(), name="site_settings"),
+    path("api/v2/contact/", ContactSubmitView.as_view(), name="contact_submit"),
     path("api/v2/", api_router.urls),
 
 

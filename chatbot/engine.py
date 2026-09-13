@@ -1,19 +1,17 @@
 import os
+import re
 
 import numpy as np
 
 # Ensure HuggingFace cache directory is writable by non-root users
 os.environ["HF_HOME"] = "/tmp/huggingface"
 
-
 from django.db.models import Max
 
 from .models import ChatbotEntry
 
 
-
 class ChatbotEngine:
-    
     THRESHOLD = float(os.environ.get("CHATBOT_THRESHOLD", "0.70"))
     MARGIN = float(os.environ.get("CHATBOT_MARGIN", "0.06"))
     MODEL_NAME = os.environ.get("CHATBOT_MODEL", "all-MiniLM-L6-v2")
@@ -26,12 +24,20 @@ class ChatbotEngine:
         self._fallback = ""
         self._loaded_kb_version = None
 
+    @staticmethod
+    def _normalize_text(value: str) -> str:
+        if value is None:
+            return ""
+        text = value.lower()
+        text = re.sub(r"[^a-z0-9\sàèéìíòóùúçñ]+", " ", text, flags=re.UNICODE)
+        text = re.sub(r"\s+", " ", text)
+        return text.strip()
+
     def _ensure_loaded(self):
-        
         latest = ChatbotEntry.objects.aggregate(latest=Max("updated_at"))["latest"]
 
         if self._model is not None and latest == self._loaded_kb_version:
-            return  
+            return
         if self._model is None:
             print("[Chatbot] Initializing model...")
             from sentence_transformers import SentenceTransformer
@@ -39,21 +45,26 @@ class ChatbotEngine:
             self._model = SentenceTransformer(self.MODEL_NAME, device="cpu")
 
         print("[Chatbot] (Re)building embedding index from ChatbotEntry...")
+        existing_fallback = self._fallback
         self._questions = []
         self._answers = []
         self._fallback = ""
 
         for entry in ChatbotEntry.objects.all():
             if entry.is_fallback:
-                self._fallback = entry.answer
+                self._fallback = entry.answer.strip()
                 continue
             for q in entry.questions_list:
-                self._questions.append(q)
+                normalized = self._normalize_text(q)
+                if not normalized:
+                    continue
+                self._questions.append(normalized)
                 self._answers.append(entry.answer)
 
         if not self._questions:
             self._embeddings = None
             self._loaded_kb_version = latest
+            self._fallback = self._fallback or existing_fallback
             print("[Chatbot] No ChatbotEntry rows found - run `manage.py seed_chatbot_kb`.")
             return
 
@@ -84,15 +95,30 @@ class ChatbotEngine:
         """
         self._ensure_loaded()
 
+        if not query or not self._normalize_text(query):
+            fallback = self._fallback or "Il chatbot non e ancora configurato."
+            return fallback, {
+                "best_score": 0.0,
+                "second_score": 0.0,
+                "margin": 0.0,
+                "matched_question": None,
+                "used_fallback": True,
+                "reason": "empty query",
+            }
+
         if self._embeddings is None:
-            return self._fallback or "Il chatbot non e ancora configurato.", {
-                "best_score": 0.0, "second_score": 0.0, "margin": 0.0,
-                "matched_question": None, "used_fallback": True,
+            fallback = self._fallback or "Il chatbot non e ancora configurato."
+            return fallback, {
+                "best_score": 0.0,
+                "second_score": 0.0,
+                "margin": 0.0,
+                "matched_question": None,
+                "used_fallback": True,
                 "reason": "knowledge base empty",
             }
 
         query_vec = self._model.encode(
-            [query],
+            [self._normalize_text(query)],
             convert_to_numpy=True,
             normalize_embeddings=True,
         )[0]
@@ -132,5 +158,6 @@ class ChatbotEngine:
             return self._fallback, meta
 
         return self._answers[best_idx], meta
+
 
 engine = ChatbotEngine()

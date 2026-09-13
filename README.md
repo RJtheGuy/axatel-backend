@@ -68,7 +68,33 @@ Then open:
 
 ---
 
+## Monitoring pages debug
+
+If the frontend requests monitoring pages such as `traffico` or `cantieri` and
+the API returns HTTP 200 with an empty `items` array, check the Wagtail page
+records before changing migrations or API code:
+
+```bash
+venv/bin/python manage.py shell -c "from monitoring.models import MonitoringIndexPage, MonitoringPage; print(list(MonitoringIndexPage.objects.values('title','slug','live'))); print(list(MonitoringPage.objects.values('title','slug','live')))"
+```
+
+The monitoring index and its child pages must exist in the active MySQL
+database. Create and publish an `Indice Monitoraggio` page under `HomePage`
+with title and slug `Monitoraggio` / `monitoraggio`. Under it, create and
+publish `Argomento monitoraggio` pages with the slugs expected by the
+frontend:
+
+`traffico`, `cantieri`, `gallerie`, `frane`, `fiumi`, `aria`, `alberi`,
+`ponti`, and `edifici`.
+
+If the query returns no records, the pages are missing and must be created.
+If it returns records with `live=False`, publish them in the CMS. The admin
+label `Monitoraggio` or an existing `services.ServicePage` titled
+`Monitoraggio` does not create a `monitoring.MonitoringPage`; the page type
+and slug must match the frontend API request.
+
 ## Available StreamField blocks
+
 
 Marketing agents see these in the "+" block picker inside any page editor:
 

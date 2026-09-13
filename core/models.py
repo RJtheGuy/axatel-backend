@@ -1,5 +1,7 @@
 
+from django.core.validators import FileExtensionValidator
 from django.db import models
+from uuid import uuid4
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 
@@ -19,6 +21,10 @@ _SNAPSHOT_FIELDS = [
     "heading_font", "body_font", "base_font_size",
     "radius_preset", "shadow_preset", "type_scale_preset",
 ]
+
+
+def submission_attachment_path(instance, filename):
+    return f"submissions/{uuid4().hex}_{filename}"
 
 
 @register_setting(icon="view")
@@ -149,12 +155,24 @@ class ContactSubmission(models.Model):
     (not a Wagtail page/snippet) — this is transactional data an editor
     reviews and acts on, not content they compose."""
  
+    CONTACT_TYPES = [
+        ("contact", "Richiesta di contatto"),
+        ("candidate", "Candidatura"),
+    ]
+
     name = models.CharField(max_length=150)
+    submission_type = models.CharField(max_length=20, choices=CONTACT_TYPES, default="contact")
     company = models.CharField(max_length=150, blank=True)
     email = models.EmailField()
     phone = models.CharField(max_length=40, blank=True)
     interests = models.JSONField(default=list, blank=True)
     message = models.TextField(blank=True)
+    attachment = models.FileField(
+        upload_to=submission_attachment_path,
+        blank=True,
+        validators=[FileExtensionValidator(["pdf", "doc", "docx", "odt", "rtf", "txt"])],
+        help_text="CV o documento allegato. Massimo 10 MB.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
  
     class Meta:

@@ -11,12 +11,9 @@ DEBUG = os.environ.get("APP_DEBUG", "False").lower() in ("true", "1", "t")
 ALLOWED_HOSTS = [
     "axatel.it",
     "www.axatel.it",
-    "localhost",      
+    "localhost",
     "127.0.0.1",
-    "web",            
-    "localhost",     
-    "127.0.0.1",
-    "web",           
+    "web",
 ]
 
 INSTALLED_APPS = [
@@ -48,7 +45,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sitemaps",
     "wagtailseo",                    # site-wide SEO panel + Twitter Cards
-    "wagtailseo",                    
     "core",
     "home",
     "services",
@@ -109,7 +105,6 @@ CSRF_TRUSTED_ORIGINS = [
     if origin.strip()
 ]
 
-
 WAGTAILADMIN_BASE_URL = os.environ.get("SITE_URL", "http://localhost:8001")
 HEADLESS_PREVIEW_CLIENT_URLS = {
     "default": os.environ.get("FRONTEND_URL", "http://localhost:5173") + "/preview",
@@ -154,14 +149,10 @@ TIME_ZONE     = "Europe/Rome"
 USE_I18N      = True
 USE_TZ        = True
 
-STATIC_URL          = "/static/"
-STATIC_ROOT         = BASE_DIR / "staticfiles"
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
-
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-MEDIA_URL  = "/media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

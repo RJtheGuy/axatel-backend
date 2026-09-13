@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from wagtail.admin.panels import FieldPanel
@@ -44,6 +45,26 @@ class ChatbotEntry(models.Model):
                 name="unique_chatbot_fallback",
             ),
         ]
+
+    def clean(self):
+        super().clean()
+
+        if not self.questions or not self.questions.strip():
+            raise ValidationError({"questions": "Inserisci almeno una domanda valida."})
+
+        if not self.answer or not self.answer.strip():
+            raise ValidationError({"answer": "Inserisci una risposta valida."})
+
+        if self.is_fallback:
+            existing = ChatbotEntry.objects.filter(is_fallback=True).exclude(pk=self.pk)
+            if existing.exists():
+                raise ValidationError(
+                    {"is_fallback": "Esiste già una risposta di riserva. Disattiva quella attuale prima di crearne un'altra."}
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         stripped = self.questions.strip()

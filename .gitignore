@@ -1,0 +1,16 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local environment
+.env
+.env.*
+.venv/
+venv/
+
+# Generated runtime artifacts
+db.sqlite3
+static/
+staticfiles/
+logs/
+media/

@@ -15,13 +15,15 @@ def chat(request):
 
     try:
         data = json.loads(request.body)
-        query = data.get("message", "").strip()
+        query = (data.get("message") or "").strip()
 
         if not query:
             return JsonResponse({"error": "Message parameter is required"}, status=400)
 
         answer = engine.answer(query)
-        return JsonResponse({"response": answer})
+        fallback = engine._fallback or "Il chatbot non è configurato correttamente."
+        response = answer or fallback
+        return JsonResponse({"response": response})
 
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
