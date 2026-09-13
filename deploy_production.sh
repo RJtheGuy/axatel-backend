@@ -86,6 +86,7 @@ EMAIL_HOST=$SMTP_HOST
 EMAIL_HOST_USER=$SMTP_USER
 EMAIL_HOST_PASSWORD=$SMTP_PASSWORD
 EOF
+    sudo chown www-data:www-data "$APP_ROOT/.env"
     sudo chmod 600 "$APP_ROOT/.env"
 else
     echo "Preserving existing $APP_ROOT/.env"
