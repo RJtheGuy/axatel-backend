@@ -132,7 +132,7 @@ EOF
 
 sudo chown -R www-data:www-data "$FRONTEND_ROOT"
 sudo install -d -o www-data -g www-data /var/cache/axatel-npm
-sudo -u www-data bash -c "cd '$FRONTEND_ROOT' && rm -rf node_modules && npm_config_cache=/var/cache/axatel-npm npm ci && NUXT_PUBLIC_API_BASE=$PUBLIC_SCHEME://$DOMAIN_NAME/api/v2 NUXT_API_INTERNAL_BASE=http://127.0.0.1:8000/api/v2 npm run build"
+sudo -u www-data env HOME="$FRONTEND_ROOT" NUXT_TELEMETRY_DISABLED=1 bash -c "cd '$FRONTEND_ROOT' && rm -rf node_modules && npm_config_cache=/var/cache/axatel-npm npm ci && NUXT_PUBLIC_API_BASE=$PUBLIC_SCHEME://$DOMAIN_NAME/api/v2 NUXT_API_INTERNAL_BASE=http://127.0.0.1:8000/api/v2 npm run build"
 
 sudo tee /etc/systemd/system/axatel-frontend.service >/dev/null <<EOF
 [Unit]
