@@ -61,6 +61,9 @@ GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 SQL
 
+# Keep Django's connection collation consistent with the database defaults.
+sudo mysql -u root -e "ALTER DATABASE \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
 sudo mkdir -p /var/www
 if [[ ! -d "$APP_ROOT/.git" ]]; then sudo git clone "$BACKEND_REPO_URL" "$APP_ROOT"; fi
 if [[ ! -d "$FRONTEND_ROOT/.git" ]]; then sudo git clone "$FRONTEND_REPO_URL" "$FRONTEND_ROOT"; fi
