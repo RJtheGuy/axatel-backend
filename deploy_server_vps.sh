@@ -50,4 +50,4 @@ else
 fi
 
 echo "[server] Deploy bootstrap complete"
-echo "[server] Start the app with: gunicorn axatel.wsgi:application --bind 0.0.0.0:8000"
+echo "[server] Restart the app with: systemctl restart axatel"

@@ -69,4 +69,4 @@ if [ "$CREATE_SUPERUSER" = "1" ]; then
 fi
 
 echo "[deploy] Initial deployment setup complete."
-echo "[deploy] Start the app with: gunicorn axatel.wsgi:application --bind 0.0.0.0:8000"
+echo "[deploy] Restart the app with: systemctl restart axatel"
