@@ -6,8 +6,31 @@ from wagtail.fields import StreamField
 from core.api_blocks import PageChooserBlock
 
 
+def _visible(value) -> bool:
+    """Entries saved before the "Visibile" switch existed count as visible."""
+    flag = value.get("visible")
+    return True if flag is None else bool(flag)
+
+
+def _label(value, context) -> str:
+    """Menu label in the requested language (?locale=en → label_en),
+    falling back to the Italian label when no translation was entered."""
+    language = (context or {}).get("locale")
+    if language and language != "it":
+        translated = (value.get(f"label_{language}") or "").strip()
+        if translated:
+            return translated
+    return value.get("label", "")
+
+
 class NavSubLinkBlock(blocks.StructBlock):
     label = blocks.CharBlock(max_length=60, help_text="Testo del link, es. 'Sensori'")
+    label_en = blocks.CharBlock(max_length=60, required=False, label="Etichetta EN")
+    label_fr = blocks.CharBlock(max_length=60, required=False, label="Etichetta FR")
+    visible = blocks.BooleanBlock(
+        required=False, default=True, label="Visibile",
+        help_text="Togli la spunta per nascondere questa voce dal sito senza cancellarla.",
+    )
     page = PageChooserBlock(
         required=False,
         help_text="Preferito: collega una pagina reale del sito. L'URL resta sempre corretto anche se cambia lo slug.",
@@ -26,14 +49,21 @@ class NavSubLinkBlock(blocks.StructBlock):
         page_block = self.child_blocks["page"]
         page_repr = page_block.get_api_representation(value.get("page"), context=context) if value.get("page") else None
         return {
-            "label": value.get("label", ""),
+            "label": _label(value, context),
             "href": page_repr["url"] if page_repr else value.get("custom_url", ""),
             "open_in_new_tab": bool(value.get("open_in_new_tab")),
+            "visible": _visible(value),
         }
 
 
 class NavGroupBlock(blocks.StructBlock):
     label = blocks.CharBlock(max_length=60, help_text="Titolo colonna, es. 'Piattaforme'")
+    label_en = blocks.CharBlock(max_length=60, required=False, label="Etichetta EN")
+    label_fr = blocks.CharBlock(max_length=60, required=False, label="Etichetta FR")
+    visible = blocks.BooleanBlock(
+        required=False, default=True, label="Visibile",
+        help_text="Togli la spunta per nascondere questa voce dal sito senza cancellarla.",
+    )
     links = blocks.ListBlock(NavSubLinkBlock())
 
     class Meta:
@@ -42,9 +72,11 @@ class NavGroupBlock(blocks.StructBlock):
 
     def get_api_representation(self, value, context=None):
         links_block = self.child_blocks["links"]
+        links = [link for link in value.get("links", []) if _visible(link)]
         return {
-            "label": value.get("label", ""),
-            "links": links_block.get_api_representation(value.get("links", []), context=context),
+            "label": _label(value, context),
+            "visible": _visible(value),
+            "links": links_block.get_api_representation(links, context=context),
         }
 
 
@@ -53,6 +85,12 @@ class NavItemBlock(blocks.StructBlock):
     direct link (e.g. 'Casi di successo'); fill it in for a dropdown
     (e.g. 'Come lo realizziamo?')."""
     label = blocks.CharBlock(max_length=60)
+    label_en = blocks.CharBlock(max_length=60, required=False, label="Etichetta EN")
+    label_fr = blocks.CharBlock(max_length=60, required=False, label="Etichetta FR")
+    visible = blocks.BooleanBlock(
+        required=False, default=True, label="Visibile",
+        help_text="Togli la spunta per nascondere questa voce dal sito senza cancellarla.",
+    )
     page = PageChooserBlock(required=False, help_text="Per un link diretto senza tendina.")
     custom_url = blocks.CharBlock(max_length=200, required=False)
     groups = blocks.ListBlock(
@@ -69,9 +107,12 @@ class NavItemBlock(blocks.StructBlock):
         groups_block = self.child_blocks["groups"]
         page_repr = page_block.get_api_representation(value.get("page"), context=context) if value.get("page") else None
         return {
-            "label": value.get("label", ""),
+            "label": _label(value, context),
             "href": page_repr["url"] if page_repr else (value.get("custom_url") or None),
-            "groups": groups_block.get_api_representation(value.get("groups", []), context=context),
+            "visible": _visible(value),
+            "groups": groups_block.get_api_representation(
+                [group for group in value.get("groups", []) if _visible(group)], context=context
+            ),
         }
 
 
@@ -102,12 +143,16 @@ class NavigationSettings(BaseSiteSetting):
     cta_visible = models.BooleanField(
         default=True, verbose_name="Mostra pulsante header",
     )
+    cta_label_en = models.CharField(max_length=60, blank=True, verbose_name="Testo pulsante header (EN)")
+    cta_label_fr = models.CharField(max_length=60, blank=True, verbose_name="Testo pulsante header (FR)")
 
     panels = [
         FieldPanel("items"),
         MultiFieldPanel([
             FieldPanel("cta_visible"),
             FieldPanel("cta_label"),
+            FieldPanel("cta_label_en"),
+            FieldPanel("cta_label_fr"),
             FieldPanel("cta_url"),
         ], heading="Pulsante header"),
     ]

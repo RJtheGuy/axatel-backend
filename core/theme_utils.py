@@ -12,11 +12,28 @@ def _hls_to_hex(h: float, l: float, s: float) -> str:
     return "#{:02X}{:02X}{:02X}".format(round(r * 255), round(g * 255), round(b * 255))
 
 
-def generate_palette(primary_color: str, background_color: str) -> dict:
-    """Given the two colors an editor actually chooses, derive the rest
-    of the semantic palette. Returns hex strings ready to serialize."""
+def _blend(fg: str, bg: str, amount: float) -> str:
+    """Mix `amount` of fg into bg (0 = bg, 1 = fg), in sRGB."""
+    fg, bg = fg.lstrip("#"), bg.lstrip("#")
+    mixed = (
+        round(int(fg[i:i + 2], 16) * amount + int(bg[i:i + 2], 16) * (1 - amount))
+        for i in (0, 2, 4)
+    )
+    return "#{:02X}{:02X}{:02X}".format(*mixed)
+
+
+def generate_palette(primary_color: str, background_color: str, text_color: str | None = None) -> dict:
+    """Given the colors an editor actually chooses, derive the rest
+    of the semantic palette. Returns hex strings ready to serialize.
+
+    Muted text and borders are blends of the TEXT colour into the
+    background. They used to be the background's own hue pushed lighter,
+    which on the default navy background gave saturated blue text
+    (#1E49A9, contrast ~2.5:1) that was hard to read."""
     bg_h, bg_l, bg_s = _hex_to_hls(background_color)
     is_dark_bg = bg_l < 0.5
+    if not text_color:
+        text_color = "#F2F8FF" if is_dark_bg else "#0B1B2B"
 
     return {
         # Fixed semantic hues (green/amber/red), lightness nudged to sit
@@ -27,8 +44,8 @@ def generate_palette(primary_color: str, background_color: str) -> dict:
         # Structural neutrals, derived from the background's own
         # lightness so they always read correctly against it.
         "surface_color": _hls_to_hex(bg_h, bg_l + (0.06 if is_dark_bg else -0.03), bg_s),
-        "border_color": _hls_to_hex(bg_h, bg_l + (0.15 if is_dark_bg else -0.10), bg_s),
-        "muted_color": _hls_to_hex(bg_h, bg_l + (0.35 if is_dark_bg else -0.30), max(bg_s - 0.1, 0)),
+        "border_color": _blend(text_color, background_color, 0.22),
+        "muted_color": _blend(text_color, background_color, 0.66),
     }
 
 RADIUS_PRESETS = {"flat": "0px", "soft": "8px", "sharp": "2px", "round": "16px"}

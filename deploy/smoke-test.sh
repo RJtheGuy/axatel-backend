@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# smoke-test.sh — check that the whole Axatel site works end to end.
+#
+# Run on the server as root after every deploy (read-only, changes nothing):
+#   bash /var/www/axatel/deploy/smoke-test.sh
+#
+# Exit code 0 = everything passed, 1 = something failed (so it can gate a deploy script).
+set -uo pipefail
+
+APP=/var/www/axatel
+FRONT=/var/www/axatel-frontend
+PY="$APP/venv/bin/python"
+export DJANGO_SETTINGS_MODULE=axatel.settings.production
+
+BACKEND="http://127.0.0.1:8000"
+SITE="http://127.0.0.1"          # through nginx, like a real visitor
+
+# Everything runs locally against this server only - it never contacts axatel.it.
+# Host header: the server IP first, then any other host Django accepts.
+HOST=""
+for h in ${SMOKE_HOST:-} 80.211.135.192 127.0.0.1 \
+         $(grep -E '^ALLOWED_HOSTS=' "$APP/.env" 2>/dev/null | cut -d= -f2- | tr -d '"'"'" | tr ',' ' '); do
+  c=$(curl -s -o /dev/null -m 10 -w "%{http_code}" -H "Host: $h" "$BACKEND/api/v2/site-settings/")
+  if [ "$c" != 400 ] && [ "$c" != 000 ]; then HOST=$h; break; fi
+done
+if [ -z "$HOST" ]; then
+  echo "Django rejects every Host header (or is not running). Add 80.211.135.192 to ALLOWED_HOSTS in $APP/.env"
+  HOST=80.211.135.192
+fi
+
+PASS=0; FAIL=0; WARN=0
+ok()   { printf "  \e[32m✓\e[0m %s\n" "$1"; PASS=$((PASS+1)); }
+bad()  { printf "  \e[31m✗\e[0m %s\n" "$1"; FAIL=$((FAIL+1)); }
+warn() { printf "  \e[33m!\e[0m %s\n" "$1"; WARN=$((WARN+1)); }
+section() { printf "\n\e[1m%s\e[0m\n" "$1"; }
+code() { curl -s -o /dev/null -m 20 -w "%{http_code}" -H "Host: $HOST" "$@"; }
+
+echo "Axatel smoke test — $(date '+%F %T') — Host: $HOST"
+
+# ── 1. Services ──────────────────────────────────────────────────────────
+section "1. Services"
+for s in nginx axatel axatel-frontend mariadb redis-server; do
+  [ "$(systemctl is-active $s)" = active ] && ok "$s running" || bad "$s NOT running  → systemctl status $s"
+done
+if ps -o user= -C gunicorn | grep -qv www-data; then
+  bad "a Gunicorn process runs as root (started by hand)  → see SERVER-DEBUG.md 'Port 8000 taken'"
+else
+  ok "Gunicorn runs only as www-data"
+fi
+redis-cli ping 2>/dev/null | grep -q PONG && ok "redis answers" || bad "redis does not answer"
+
+# ── 2. Django health ─────────────────────────────────────────────────────
+section "2. Django"
+cd "$APP"
+if out=$(sudo -u www-data "$PY" manage.py check 2>&1); then ok "manage.py check"; else bad "manage.py check failed"; echo "$out" | tail -5; fi
+pending=$(sudo -u www-data "$PY" manage.py showmigrations --plan 2>/dev/null | grep -c "^\[ \]")
+[ "$pending" = 0 ] && ok "all migrations applied" || bad "$pending migration(s) not applied  → manage.py migrate"
+deploy_warn=$(sudo -u www-data "$PY" manage.py check --deploy 2>&1 | grep -c "security.W")
+[ "$deploy_warn" = 0 ] && ok "no security warnings" || warn "$deploy_warn security warning(s) (expected until HTTPS)  → manage.py check --deploy"
+grep -qE '^ADMIN_EMAILS=.+' "$APP/.env" && ok "ADMIN_EMAILS set (contact notifications)" || warn "ADMIN_EMAILS missing in .env — nobody is emailed about contact requests"
+
+# ── 3. API (Django directly) ─────────────────────────────────────────────
+section "3. API"
+for ep in site-settings/ themes/active/ "pages/?limit=1" images/?limit=1; do
+  c=$(code "$BACKEND/api/v2/$ep"); [ "$c" = 200 ] && ok "/api/v2/$ep → 200" || bad "/api/v2/$ep → $c"
+done
+c=$(curl -s -o /dev/null -m 20 -w "%{http_code}" -H "Host: $HOST" -X POST "$BACKEND/api/v2/themes/restore/")
+[ "$c" = 403 ] || [ "$c" = 401 ] && ok "theme restore blocked for visitors ($c)" || warn "theme restore returned $c to an anonymous visitor (fix not deployed?)"
+c=$(code "$BACKEND/cms/login/"); [ "$c" = 200 ] && ok "CMS login page → 200" || bad "CMS login page → $c"
+c=$(code "$BACKEND/sitemap.xml"); [ "$c" = 200 ] && ok "sitemap.xml → 200" || bad "sitemap.xml → $c"
+
+# ── 4. CMS content the frontend expects ──────────────────────────────────
+section "4. CMS pages (must exist AND be published)"
+live_slugs() {
+  curl -s -m 20 -H "Host: $HOST" "$BACKEND/api/v2/pages/?type=$1&fields=_&limit=100" \
+    | "$PY" -c 'import sys,json; print(" ".join(i["meta"]["slug"] for i in json.load(sys.stdin).get("items",[])))' 2>/dev/null
+}
+mon=$(live_slugs monitoring.MonitoringPage)
+for s in traffico cantieri gallerie frane fiumi aria alberi ponti edifici; do
+  [[ " $mon " == *" $s "* ]] && ok "monitoraggio/$s published" || bad "monitoraggio/$s missing or not published  → create/publish 'Argomento monitoraggio' in /cms/"
+done
+for t in monitoring.MonitoringIndexPage casi.CasiIndexPage; do
+  [ -n "$(live_slugs $t)" ] && ok "$t published" || bad "$t missing or not published"
+done
+n=$(live_slugs casi.CasoSuccessoPage | wc -w); [ "$n" -gt 0 ] && ok "$n case studies published" || warn "no case studies published (homepage shows built-in fallback)"
+
+# ── 5. Frontend pages (through nginx, like a visitor) ────────────────────
+section "5. Frontend pages"
+ROUTES="/ /casi /monitoraggio /contatti /blog /servizi /soluzioni /azienda/team /azienda/chi-siamo
+/monitoraggio/traffico /monitoraggio/ponti /soluzioni/angel-bpm /soluzioni/lorawan /approfondimenti/glossario
+/robots.txt /sitemap.xml"
+for r in $ROUTES; do
+  c=$(code "$SITE$r")
+  case "$c" in
+    200) ok "$r → 200" ;;
+    301|302|308) warn "$r → $c redirect" ;;
+    *) bad "$r → $c" ;;
+  esac
+done
+c=$(code "$SITE/questa-pagina-non-esiste-$$"); [ "$c" = 404 ] && ok "unknown page → 404" || warn "unknown page → $c (should be 404)"
+
+# ── 6. Not indexed by search engines (protects the live axatel.it) ────────
+section "6. Search engines"
+if curl -s -I -m 10 "$SITE/" | grep -qi "x-robots-tag:.*noindex"; then
+  ok "noindex header present - Google won't index the IP site"
+else
+  warn "no X-Robots-Tag noindex header - the IP site could get indexed next to axatel.it"
+fi
+
+# ── 7. Errors logged in the last hour ────────────────────────────────────
+section "7. Recent errors (last hour)"
+n=$(journalctl -u axatel-frontend --since "1 hour ago" --no-pager 2>/dev/null | grep -ciE "error|FAILED")
+[ "$n" = 0 ] && ok "frontend log clean" || warn "$n error line(s) in frontend log  → journalctl -u axatel-frontend --since '1 hour ago'"
+n=$(find /var/log/gunicorn/axatel_error.log -mmin -60 -exec grep -ciE "error|traceback" {} \; 2>/dev/null || echo 0)
+[ "${n:-0}" = 0 ] && ok "backend log clean" || warn "$n error line(s) in backend log  → tail -n 80 /var/log/gunicorn/axatel_error.log"
+
+# ── Summary ──────────────────────────────────────────────────────────────
+printf "\n\e[1mResult: %d passed, %d warnings, %d failed\e[0m\n" "$PASS" "$WARN" "$FAIL"
+[ "$FAIL" = 0 ]

@@ -1,10 +1,13 @@
 import json
+import logging
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .engine import engine
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
+
+logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @api_view(['POST'])
@@ -27,5 +30,6 @@ def chat(request):
 
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("Chatbot failed to answer")
+        return JsonResponse({"error": "Il chatbot non è disponibile in questo momento."}, status=500)

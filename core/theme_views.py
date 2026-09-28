@@ -1,3 +1,4 @@
+from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from wagtail.models import Site
@@ -36,9 +37,19 @@ class ActiveThemeView(APIView):
         return Response(theme.api_representation if theme else DEFAULT_THEME)
 
 
+class CanAccessCms(BasePermission):
+    """Only users who can log in to the Wagtail admin (/cms/)."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_authenticated and user.has_perm("wagtailadmin.access_admin"))
+
+
 class RestoreThemeView(APIView):
-    """Undo the last theme save. New endpoint - nothing existing depends
-    on this path, so it's free to name however's clearest."""
+    """Undo the last theme save. Restricted to CMS users: before this,
+    any anonymous visitor could POST here and roll back the site theme."""
+
+    permission_classes = [CanAccessCms]
 
     def post(self, request):
         site = Site.find_for_request(request)

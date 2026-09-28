@@ -30,20 +30,27 @@ def _stream_to_list(stream) -> list:
     return [dict(block.value) for block in stream]
 
 
-def _stream_via_api_repr(stream) -> list:
+def _stream_via_api_repr(stream, context=None) -> list:
 
     if not stream:
         return []
     return [
-        block.block.get_api_representation(block.value)
+        block.block.get_api_representation(block.value, context=context)
         for block in stream
     ]
+
+
+SUPPORTED_LANGUAGES = {"it", "en", "fr"}
 
 
 class SiteSettingsView(APIView):
 
     def get(self, request):
         site = Site.find_for_request(request)
+        language = request.GET.get("locale", "it")
+        if language not in SUPPORTED_LANGUAGES:
+            language = "it"
+        context = {"locale": language}
 
         nav = NavigationSettings.for_site(site)
         footer = FooterSettings.for_site(site)
@@ -51,10 +58,15 @@ class SiteSettingsView(APIView):
 
         return Response({
             "navigation": {
-                "items": _stream_via_api_repr(nav.items),
+                # Entries switched off with "Visibile" are left out.
+                "items": [item for item in _stream_via_api_repr(nav.items, context) if item.get("visible", True)],
                 "cta": {
                     "visible": nav.cta_visible,
-                    "label": nav.cta_label,
+                    "label": (getattr(nav, f"cta_label_{language}", "") or "").strip() or nav.cta_label,
+                    # True when an English/French label wasn't entered and the
+                    # Italian one is sent instead; the site then uses its own
+                    # translation of "Parla con un esperto".
+                    "label_is_fallback": language != "it" and not (getattr(nav, f"cta_label_{language}", "") or "").strip(),
                     "url": nav.cta_url,
                 },
             },

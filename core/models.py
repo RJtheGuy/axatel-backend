@@ -127,7 +127,7 @@ class ThemeSettings(BaseSiteSetting):
     def api_representation(self) -> dict:
         """Same shape the frontend has always expected from
         theme_views.DEFAULT_THEME."""
-        palette = generate_palette(self.primary_color, self.background_color)
+        palette = generate_palette(self.primary_color, self.background_color, self.text_color)
         return {
             "name": "Tema attivo",
             "primary_color": self.primary_color,
@@ -158,6 +158,7 @@ class ContactSubmission(models.Model):
     CONTACT_TYPES = [
         ("contact", "Richiesta di contatto"),
         ("candidate", "Candidatura"),
+        ("quote", "Richiesta di preventivo"),
     ]
 
     name = models.CharField(max_length=150)
@@ -167,6 +168,10 @@ class ContactSubmission(models.Model):
     phone = models.CharField(max_length=40, blank=True)
     interests = models.JSONField(default=list, blank=True)
     message = models.TextField(blank=True)
+    details = models.JSONField(
+        default=dict, blank=True, verbose_name="Dettagli preventivo",
+        help_text="Prodotto o soluzione, tipo di opera, siti, tempistiche.",
+    )
     attachment = models.FileField(
         upload_to=submission_attachment_path,
         blank=True,

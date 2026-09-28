@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     "wagtail.admin",
     "wagtail",
     "wagtail.contrib.settings",
+    "wagtail.contrib.simple_translation",   # "Traduci" action on pages
+    "wagtail.locales",                      # Impostazioni → Lingue
     "wagtail.api.v2",
     "rest_framework",
     "wagtail_headless_preview",
@@ -54,6 +56,7 @@ INSTALLED_APPS = [
     "casi",
     "monitoring",
     "solutions",
+    "products",
 ]
 
 MIDDLEWARE = [
@@ -100,7 +103,7 @@ CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(
         "CSRF_TRUSTED_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8001,http://127.0.0.1:8001"
+        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8001,http://127.0.0.1:8001"
     ).split(",")
     if origin.strip()
 ]
@@ -151,6 +154,19 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "it-it"
+
+# ── Translations ─────────────────────────────────────────────────────────
+# Italian is the default and the source of every page. English and French
+# pages are created in the CMS with the "Traduci" action on a page (copies
+# it into the other language for an editor to translate).
+# The API returns ONLY Italian unless ?locale=en / ?locale=fr is passed
+# (core/api.py), so enabling this changes nothing for existing callers.
+WAGTAIL_I18N_ENABLED = True
+WAGTAIL_CONTENT_LANGUAGES = LANGUAGES = [
+    ("it", "Italiano"),
+    ("en", "English"),
+    ("fr", "Français"),
+]
 TIME_ZONE     = "Europe/Rome"
 USE_I18N      = True
 USE_TZ        = True
@@ -178,6 +194,15 @@ else:
         }
     }
 
+# Who receives contact-form notifications (mail_admins) and server
+# error emails. Comma-separated in .env: ADMIN_EMAILS=info@axatel.it,ops@axatel.it
+ADMINS = [
+    ("Axatel", email.strip())
+    for email in os.environ.get("ADMIN_EMAILS", "").split(",")
+    if email.strip()
+]
+MANAGERS = ADMINS
+
 WAGTAIL_SITE_NAME               = "Axatel"
 WAGTAIL_ENABLE_WHATS_NEW_BANNER = False
 
@@ -185,12 +210,3 @@ WAGTAILSEO_TWITTER_SITE  = "@axatel"
 WAGTAILIMAGES_EXTENSIONS = ["gif", "jpg", "jpeg", "png", "webp", "svg"]
 
 FILE_UPLOAD_PERMISSIONS = None
-
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "http://localhost:8001",
-    "http://127.0.0.1:8001",
-]

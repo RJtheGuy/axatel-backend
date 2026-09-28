@@ -3,11 +3,27 @@ from wagtail import blocks
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.api import APIField
 from wagtail.fields import StreamField
+from wagtail.images.blocks import ImageChooserBlock
 from wagtail.models import Page
 from wagtailseo.models import SeoMixin
 
 from core.api_blocks import ImageAPIField
 from core.blocks import BODY_BLOCKS
+from core.blocks_solutions import _image
+
+
+class TrustLogoBlock(blocks.StructBlock):
+    """A client, partner or certification shown in the homepage trust strip."""
+    name = blocks.CharBlock(max_length=120, label="Nome", help_text="Mostrato come testo se manca il logo; usato anche come testo alternativo.")
+    logo = ImageChooserBlock(required=False, label="Logo")
+    url = blocks.URLBlock(required=False, label="Link (facoltativo)")
+
+    class Meta:
+        icon = "image"
+        label = "Logo"
+
+    def get_api_representation(self, value, context=None):
+        return {"name": value.get("name", ""), "logo": _image(value.get("logo")), "url": value.get("url") or ""}
 
 
 class HomePage(SeoMixin, Page):
@@ -21,6 +37,8 @@ class HomePage(SeoMixin, Page):
         APIField("hero_quote_text"),
         APIField("hero_cases_logo", serializer=ImageAPIField()),
         APIField("body"),
+        APIField("trust_clients"),
+        APIField("trust_certifications"),
     ]
 
     
@@ -72,6 +90,22 @@ class HomePage(SeoMixin, Page):
         verbose_name="Contenuto pagina (blocchi)",
     )
 
+    # Trust strip above the footer. Hidden on the site while both are empty.
+    trust_clients = StreamField(
+        [("logo", TrustLogoBlock())],
+        use_json_field=True,
+        blank=True,
+        verbose_name="Clienti e partner",
+        help_text="Loghi di clienti o partner (solo con il loro consenso).",
+    )
+    trust_certifications = StreamField(
+        [("logo", TrustLogoBlock())],
+        use_json_field=True,
+        blank=True,
+        verbose_name="Certificazioni e riconoscimenti",
+        help_text="Es. ISO 9001, LoRa Alliance. Solo certificazioni effettivamente ottenute.",
+    )
+
     parent_page_types = ["wagtailcore.Page"]
     subpage_types = [
         "services.ServicesIndexPage",
@@ -80,6 +114,7 @@ class HomePage(SeoMixin, Page):
         "casi.CasiIndexPage",
         "monitoring.MonitoringIndexPage",
         "solutions.SolutionsIndexPage",
+        "products.ProductIndexPage",
     ]
 
     content_panels = Page.content_panels + [
@@ -94,6 +129,10 @@ class HomePage(SeoMixin, Page):
             FieldPanel("hero_cta_label"),
             FieldPanel("hero_cta_url"),
         ], heading="🦸 Hero — campi legacy (non usati dalla home attuale)"),
+        MultiFieldPanel([
+            FieldPanel("trust_clients"),
+            FieldPanel("trust_certifications"),
+        ], heading="🤝 Fiducia — loghi sopra il footer (nascosta se vuota)"),
         FieldPanel("body"),
     ]
 
