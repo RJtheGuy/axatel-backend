@@ -130,6 +130,7 @@ These are one-per-site forms, not pages. The frontend reads them from `GET /api/
 |---|---|---|
 | **Navigazione** | Top menu: items, dropdown columns, links; header button text/URL; English/French labels | Links should use "page" (follows slug changes); use "custom URL" only for anchors or external links. Every item, group and link has a **Visibile** switch: turn it off to hide it without deleting it. **If this is empty, the navbar uses `app/data/navigation.json`** instead. |
 | **Footer** | Contact rows (phone, email, address), P.IVA, Codice Fiscale | Used by the homepage footer. |
+| **Team** | The people on `/azienda/team`: name, photo, role and description (with optional English/French versions), **Visibile** switch, order (drag to reorder) | Read from `GET /api/v2/team/`. **While the list is empty the page shows the built-in example team** from `app/data/team.ts`. |
 | **Chatbot** | On/off, window title, welcome text, suggested questions | The answers themselves are in **Snippets → Voci chatbot**. |
 | **Tema** | Primary/background/accent/text colours, fonts, base size, type scale, corner radius, shadow, logo | Applied in the browser by `plugins/theme.client.ts` as CSS variables. Saving keeps one undo step. |
 
@@ -148,9 +149,10 @@ This is the most important thing to know. Several pages look like CMS pages but 
 | `/` homepage — hero phrases, quote, demo, "applicativi" | `app/pages/index.vue` (`dashboardConfig`) | **Hard-coded.** The CMS HomePage hero fields exist but the homepage never reads them. Only case studies and the footer come from the CMS. |
 | `/soluzioni/<slug>` | CMS (Soluzione pages) | **Editable.** The built-in text in `app/data/contentPages.ts` is only a fallback, shown when a slug has no published Soluzione page. |
 | "Come lavoriamo" steps and the closing "Hai un progetto?" box on solution/product pages | `i18n/messages-catalogue.ts` | Interface text, in IT/EN/FR. |
+| `/monitoraggio/<slug>` | CMS (Argomento monitoraggio pages) | **Editable.** The built-in text in `app/data/monitoring.ts` is only a fallback, shown when a topic has no published page. |
 | `/approfondimenti/academy, news, faq, glossario` | `app/data/contentPages.ts`, `app/data/glossary.ts` | Hard-coded; academy/news/faq are "coming soon" placeholders. |
 | `/azienda/chi-siamo, bilancio-sostenibilita, invia-il-cv, diventa-partner` | `app/data/contentPages.ts` → `companyPages` | Hard-coded. |
-| `/azienda/team` | `app/data/team.ts` | Hard-coded. |
+| `/azienda/team` | CMS (Impostazioni → Team) | **Editable.** `app/data/team.ts` is only the example shown while the CMS list is empty. |
 | Navbar (fallback) | `app/data/navigation.json` | Used only if Impostazioni → Navigazione is empty. |
 | Homepage case studies (fallback) | `app/pages/index.vue` | Shown if the CMS has no published case studies. |
 | `/articoli/*` | redirects 301 to `/casi/*` | Old URLs. |
@@ -183,9 +185,12 @@ This is the most important thing to know. Several pages look like CMS pages but 
 ```
 python manage.py seed_products --images /var/www/axatel-frontend/app/assets/immagini
 python manage.py import_solution_pages --images /var/www/axatel-frontend/app/assets/immagini
+python manage.py seed_monitoring --images /var/www/axatel-frontend/app/assets/immagini
 python manage.py seed_navigation            # add --dry-run to preview
 ```
 Each command only adds what is missing (matched by slug, or by Italian label for the menu). Run `seed_products` before `import_solution_pages` so solution pages can link to products.
+
+**Add or change a team member:** Impostazioni → Team → **+ Persona**. Fill in name and photo (square, at least 400×400 px), role and a short description; English/French versions are optional (empty = Italian text is shown). Drag people to change their order. Switch **Visibile** off to hide someone without deleting them. Save. The first person you add replaces the example team on the site.
 
 **Change colours or fonts:** Impostazioni → Tema → save. Visitors see it on their next page load.
 
@@ -204,7 +209,7 @@ Each command only adds what is missing (matched by slug, or by Italian label for
 | `DJANGO_SECRET_KEY` | Required. Keep it secret. |
 | `DATABASE_URL` | e.g. `mysql://user:pass@localhost/axatel` |
 | `REDIS_URL` | Cache; without it each worker uses its own memory cache |
-| `ALLOWED_HOSTS` | Hostnames Django answers for, comma-separated (add `new.axatel.it`, `axatel.it`, `www.axatel.it` when those go live) |
+| `ALLOWED_HOSTS` | Hostnames Django answers for, comma-separated. **Must include `127.0.0.1,localhost`**: the frontend calls the API at `127.0.0.1` when it builds pages, and without them every CMS page is missing from the HTML (product pages show "not found"). Add `new.axatel.it`, `axatel.it`, `www.axatel.it` when those go live. |
 | `CSRF_TRUSTED_ORIGINS` | Full origins allowed to POST, e.g. `http://80.211.135.192,https://axatel.it` |
 | `CORS_ALLOWED_ORIGINS` | Origins the browser may call the API from |
 | `SITE_URL` | Public base URL; used to build absolute image/document links in API responses |

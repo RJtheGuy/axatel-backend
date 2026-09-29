@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from wagtail.models import Site
 
-from .site_settings import ChatbotSettings, FooterSettings, NavigationSettings
+from .site_settings import ChatbotSettings, FooterSettings, NavigationSettings, TeamSettings
 
 
 def _stream_raw_values(stream) -> list:
@@ -85,3 +85,34 @@ class SiteSettingsView(APIView):
                 "suggestions": _stream_raw_values(chatbot.suggestions),
             },
         })
+
+class TeamView(APIView):
+    """People for /azienda/team (Impostazioni → Team), visible ones only,
+    in the editors' order, with role and description in the requested
+    language (Italian when no translation was entered)."""
+
+    def get(self, request):
+        site = Site.find_for_request(request)
+        language = request.GET.get("locale", "it")
+        if language not in SUPPORTED_LANGUAGES:
+            language = "it"
+        team = TeamSettings.for_site(site)
+        members = []
+        for member in team.members.filter(visible=True).select_related("photo").order_by("sort_order"):
+            photo = None
+            if member.photo:
+                rendition = member.photo.get_rendition("fill-400x400-c50")
+                photo = {
+                    "url": rendition.full_url,
+                    "alt": member.name,
+                    "width": rendition.width,
+                    "height": rendition.height,
+                }
+            members.append({
+                "id": member.pk,
+                "name": member.name,
+                "role": member.translated("role", language),
+                "bio": member.translated("bio", language),
+                "photo": photo,
+            })
+        return Response({"members": members})

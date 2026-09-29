@@ -61,11 +61,17 @@ grep -qE '^ADMIN_EMAILS=.+' "$APP/.env" && ok "ADMIN_EMAILS set (contact notific
 
 # ── 3. API (Django directly) ─────────────────────────────────────────────
 section "3. API"
-for ep in site-settings/ themes/active/ "pages/?limit=1" images/?limit=1; do
+for ep in site-settings/ themes/active/ "pages/?limit=1" images/?limit=1 team/; do
   c=$(code "$BACKEND/api/v2/$ep"); [ "$c" = 200 ] && ok "/api/v2/$ep → 200" || bad "/api/v2/$ep → $c"
 done
 c=$(curl -s -o /dev/null -m 20 -w "%{http_code}" -H "Host: $HOST" -X POST "$BACKEND/api/v2/themes/restore/")
 [ "$c" = 403 ] || [ "$c" = 401 ] && ok "theme restore blocked for visitors ($c)" || warn "theme restore returned $c to an anonymous visitor (fix not deployed?)"
+# The frontend asks Django at 127.0.0.1 without a public Host header (see
+# NUXT_API_INTERNAL_BASE). If ALLOWED_HOSTS lacks 127.0.0.1 every one of
+# those requests is refused, and CMS pages are missing from the HTML.
+c=$(curl -s -o /dev/null -m 20 -w "%{http_code}" "$BACKEND/api/v2/pages/?limit=1")
+[ "$c" = 200 ] && ok "frontend can reach the API (127.0.0.1 allowed)" \
+  || bad "API refuses the frontend's requests ($c)  → add 127.0.0.1,localhost to ALLOWED_HOSTS in $APP/.env"
 c=$(code "$BACKEND/cms/login/"); [ "$c" = 200 ] && ok "CMS login page → 200" || bad "CMS login page → $c"
 c=$(code "$BACKEND/sitemap.xml"); [ "$c" = 200 ] && ok "sitemap.xml → 200" || bad "sitemap.xml → $c"
 
@@ -91,7 +97,7 @@ n=$(live_slugs casi.CasoSuccessoPage | wc -w); [ "$n" -gt 0 ] && ok "$n case stu
 section "5. Frontend pages"
 ROUTES="/ /casi /monitoraggio /contatti /blog /servizi /soluzioni /azienda/team /azienda/chi-siamo
 /monitoraggio/traffico /monitoraggio/ponti /soluzioni/angel-bpm /soluzioni/lorawan /approfondimenti/glossario
-/prodotti /prodotti/angel-river /monitoraggio/aria /robots.txt /sitemap.xml /feed.xml"
+/prodotti /prodotti/angel-river /prodotti/geo-angel /monitoraggio/aria /en /en/casi /robots.txt /sitemap.xml /feed.xml"
 for r in $ROUTES; do
   c=$(code "$SITE$r")
   case "$c" in
@@ -112,9 +118,12 @@ fi
 
 # ── 7. Errors logged in the last hour ────────────────────────────────────
 section "7. Recent errors (last hour)"
-n=$(journalctl -u axatel-frontend --since "1 hour ago" --no-pager 2>/dev/null | grep -ciE "error|FAILED")
-[ "$n" = 0 ] && ok "frontend log clean" || warn "$n error line(s) in frontend log  → journalctl -u axatel-frontend --since '1 hour ago'"
-n=$(find /var/log/gunicorn/axatel_error.log -mmin -60 -exec grep -ciE "error|traceback" {} \; 2>/dev/null || echo 0)
+# The smoke test's own "unknown page" request (section 5) is not an error.
+n=$(journalctl -u axatel-frontend --since "1 hour ago" --no-pager 2>/dev/null | grep -iE "request error|FAILED" | grep -vc "questa-pagina-non-esiste")
+[ "$n" = 0 ] && ok "frontend log clean" || warn "$n error(s) in frontend log  → journalctl -u axatel-frontend --since '1 hour ago'"
+# Only lines stamped within the last hour ("[2026-09-29 21:30:38 +0200] [ERROR] …").
+since=$(date -d "1 hour ago" "+%Y-%m-%d %H:%M:%S")
+n=$(awk -v s="$since" 'substr($0,2,19) >= s' /var/log/gunicorn/axatel_error.log 2>/dev/null | grep -ciE "\[ERROR\]|traceback")
 [ "${n:-0}" = 0 ] && ok "backend log clean" || warn "$n error line(s) in backend log  → tail -n 80 /var/log/gunicorn/axatel_error.log"
 
 # ── Summary ──────────────────────────────────────────────────────────────

@@ -1,6 +1,9 @@
 from django.db import models
+from modelcluster.fields import ParentalKey
+from modelcluster.models import ClusterableModel
 from wagtail import blocks
-from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.admin.panels import FieldPanel, FieldRowPanel, InlinePanel, MultiFieldPanel
+from wagtail.models import Orderable
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from wagtail.fields import StreamField
 from core.api_blocks import PageChooserBlock
@@ -247,3 +250,68 @@ class ChatbotSettings(BaseSiteSetting):
 
     class Meta:
         verbose_name = "Chatbot"
+
+# ── Team (Impostazioni → Team) ────────────────────────────────────────────
+# The people shown on /azienda/team. One entry per person, in the order of
+# the list (drag to reorder). "Visibile" hides a person without deleting
+# them. While the list is empty, the site shows its built-in example team.
+
+
+@register_setting(icon="group")
+class TeamSettings(ClusterableModel, BaseSiteSetting):
+    panels = [
+        InlinePanel(
+            "members",
+            heading="Persone del team",
+            label="Persona",
+            help_text="Ordine = ordine sulla pagina Team (trascina per spostare). "
+                      "Ruolo e descrizione in inglese e francese sono facoltativi: "
+                      "se vuoti, si usa il testo italiano.",
+        ),
+    ]
+
+    class Meta:
+        verbose_name = "Team"
+
+
+class TeamMember(Orderable):
+    setting = ParentalKey(TeamSettings, related_name="members", on_delete=models.CASCADE)
+    name = models.CharField(max_length=120, verbose_name="Nome e cognome")
+    role = models.CharField(max_length=120, blank=True, verbose_name="Ruolo")
+    role_en = models.CharField(max_length=120, blank=True, verbose_name="Ruolo (EN)")
+    role_fr = models.CharField(max_length=120, blank=True, verbose_name="Ruolo (FR)")
+    bio = models.TextField(max_length=600, blank=True, verbose_name="Descrizione")
+    bio_en = models.TextField(max_length=600, blank=True, verbose_name="Descrizione (EN)")
+    bio_fr = models.TextField(max_length=600, blank=True, verbose_name="Descrizione (FR)")
+    photo = models.ForeignKey(
+        "wagtailimages.Image",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        verbose_name="Foto",
+        help_text="Meglio quadrata, almeno 400×400 px. Viene ritagliata al centro.",
+    )
+    visible = models.BooleanField(
+        default=True,
+        verbose_name="Visibile",
+        help_text="Spegni per nascondere la persona dal sito senza cancellarla.",
+    )
+
+    panels = [
+        FieldRowPanel([FieldPanel("name"), FieldPanel("visible")]),
+        FieldPanel("photo"),
+        FieldRowPanel([FieldPanel("role"), FieldPanel("role_en"), FieldPanel("role_fr")], heading="Ruolo"),
+        FieldPanel("bio"),
+        MultiFieldPanel([FieldPanel("bio_en"), FieldPanel("bio_fr")], heading="Descrizione EN / FR", classname="collapsed"),
+    ]
+
+    def translated(self, field: str, language: str) -> str:
+        if language != "it":
+            value = (getattr(self, f"{field}_{language}", "") or "").strip()
+            if value:
+                return value
+        return getattr(self, field, "") or ""
+
+    def __str__(self):
+        return self.name
