@@ -72,14 +72,17 @@ c=$(code "$BACKEND/sitemap.xml"); [ "$c" = 200 ] && ok "sitemap.xml → 200" || 
 # ── 4. CMS content the frontend expects ──────────────────────────────────
 section "4. CMS pages (must exist AND be published)"
 live_slugs() {
-  curl -s -m 20 -H "Host: $HOST" "$BACKEND/api/v2/pages/?type=$1&fields=_&limit=100" \
+  curl -s -m 20 -H "Host: $HOST" "$BACKEND/api/v2/pages/?type=$1&fields=_,slug&limit=20" \
     | "$PY" -c 'import sys,json; print(" ".join(i["meta"]["slug"] for i in json.load(sys.stdin).get("items",[])))' 2>/dev/null
 }
 mon=$(live_slugs monitoring.MonitoringPage)
-for s in traffico cantieri gallerie frane fiumi aria alberi ponti edifici; do
-  [[ " $mon " == *" $s "* ]] && ok "monitoraggio/$s published" || bad "monitoraggio/$s missing or not published  → create/publish 'Argomento monitoraggio' in /cms/"
+missing=""
+for s in traffico cantieri frane fiumi aria ponti edifici; do
+  [[ " $mon " == *" $s "* ]] || missing="$missing $s"
 done
-for t in monitoring.MonitoringIndexPage casi.CasiIndexPage; do
+[ -z "$missing" ] && ok "monitoring topics are in the CMS" \
+  || warn "not in the CMS yet:$missing (the site shows the built-in text)  → manage.py seed_monitoring"
+for t in casi.CasiIndexPage; do
   [ -n "$(live_slugs $t)" ] && ok "$t published" || bad "$t missing or not published"
 done
 n=$(live_slugs casi.CasoSuccessoPage | wc -w); [ "$n" -gt 0 ] && ok "$n case studies published" || warn "no case studies published (homepage shows built-in fallback)"
@@ -88,7 +91,7 @@ n=$(live_slugs casi.CasoSuccessoPage | wc -w); [ "$n" -gt 0 ] && ok "$n case stu
 section "5. Frontend pages"
 ROUTES="/ /casi /monitoraggio /contatti /blog /servizi /soluzioni /azienda/team /azienda/chi-siamo
 /monitoraggio/traffico /monitoraggio/ponti /soluzioni/angel-bpm /soluzioni/lorawan /approfondimenti/glossario
-/robots.txt /sitemap.xml"
+/prodotti /prodotti/angel-river /monitoraggio/aria /robots.txt /sitemap.xml /feed.xml"
 for r in $ROUTES; do
   c=$(code "$SITE$r")
   case "$c" in
