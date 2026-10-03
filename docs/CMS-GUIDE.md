@@ -161,7 +161,7 @@ This is the most important thing to know. Several pages look like CMS pages but 
 | `/monitoraggio/<slug>` | CMS (Argomento monitoraggio pages) | **Editable.** The built-in text in `app/data/monitoring.ts` is only a fallback, shown when a topic has no published page. |
 | `/azienda/chi-siamo, bilancio-sostenibilita, invia-il-cv, diventa-partner` | CMS (Pagina informativa under Azienda) | **Editable** after `import_info_pages`. The text in `app/data/contentPages.ts` is only the fallback. |
 | `/approfondimenti/glossario` | CMS (Glossario under Approfondimenti) | **Editable**: terms are rows in the page. `app/data/glossary.ts` is only the fallback. |
-| `/approfondimenti/academy, news, faq` | built-in "coming soon" placeholders | Create a Pagina informativa with that slug under Approfondimenti to replace one (use the "Domande frequenti" block for the FAQ). |
+| `/approfondimenti/academy, news, faq` | built-in "coming soon" placeholders | Create a Pagina informativa with that slug under Approfondimenti to replace one (use the "Domande frequenti" block for the FAQ). `import_info_pages` creates the FAQ as a **draft** with 7 starter questions: review it and press Pubblica. |
 | `/azienda/team` | CMS (Impostazioni → Team) | **Editable.** `app/data/team.ts` is only the example shown while the CMS list is empty. |
 | Navbar (fallback) | `app/data/navigation.json` | Used only if Impostazioni → Navigazione is empty. |
 | Homepage case studies (fallback) | `app/pages/index.vue` | Shown if the CMS has no published case studies. |
@@ -203,6 +203,9 @@ python manage.py rename_blog_to_news        # once: Blog menu link → News (/ne
 Each command only adds what is missing (matched by slug, or by Italian label for the menu). Run `seed_products` before `import_solution_pages` so solution pages can link to products.
 
 **Organisation chart on the team page:** each person has **Riporta a** (who they report to) and, for managers, **Guida il reparto** (the department they lead). When at least one person reports to someone, the page draws an org chart: lines only between a person and their manager, departments as separate branches. Save a new person once before choosing them in someone else's "Riporta a". Hiding a manager keeps their team attached to the next person up.
+
+- **Riporta anche a** (optional, tick boxes): extra managers for people who answer to more than one person. The person stays placed under their main manager ("Riporta a"); each extra manager gets a thinner, lighter line, and the profile lists all of them under "Riporta a".
+- **Etichetta sotto il nome** (top of Impostazioni → Team): what is printed under each name in the chart. *Reparto* (default) shows the department pill under the managers; *Ruolo* shows each person's role; *Ruolo e reparto* shows both; *Nessuna etichetta* shows only names. The profile always shows the role and department.
 
 **Add or change a team member:** Impostazioni → Team → **+ Persona**. Fill in name and photo (square, at least 400×400 px), role and a short description; English/French versions are optional (empty = Italian text is shown). Drag people to change their order. Switch **Visibile** off to hide someone without deleting them. Save. The first person you add replaces the example team on the site.
 

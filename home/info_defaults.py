@@ -256,3 +256,40 @@ GLOSSARY = {'slug': 'glossario',
            {'term': 'Videoanalisi',
             'definition': 'Elaborazione automatica delle immagini di una telecamera per riconoscere oggetti, '
                           'comportamenti o eventi, come code e veicoli fermi.'}]}
+
+# Starter FAQ, created as a DRAFT (not published) for marketing to review.
+# Every answer reuses statements already on the site (Chi siamo, LoRaWAN,
+# Monitoraggio, AngelBPM, Collaudo e manutenzione pages).
+FAQ_DRAFT = {
+    "slug": "faq",
+    "title": "FAQ",
+    "eyebrow": "Risposte utili",
+    "introduction": "Le domande più frequenti su soluzioni, tecnologie, installazione e assistenza.",
+    "items": [
+        ("Di cosa si occupa Axatel?",
+         "Dal 2012 progettiamo a Vicenza sistemi di automazione, monitoraggio e IoT per rendere infrastrutture e "
+         "territori più osservabili e sicuri. Seguiamo l'intera filiera: sensori ed elettronica, comunicazione, "
+         "automazione, software di supervisione e servizi operativi."),
+        ("Che cosa potete monitorare?",
+         "Lavoriamo in particolare su strade, gallerie, dissesto idrogeologico e monitoraggio ambientale e "
+         "strutturale: qualità dell'aria, fiumi, frane, traffico, cantieri, ponti ed edifici."),
+        ("Servono corrente elettrica o una SIM dati sul posto?",
+         "Non sempre. La rete LoRaWAN collega sensori distribuiti via radio a lungo raggio, con bassi consumi e "
+         "senza una SIM per ogni dispositivo, anche lontano dalla rete elettrica o dalla copertura cellulare. "
+         "Alcune soluzioni, come Cerere Pro Aria, hanno anche alimentazione autonoma."),
+        ("Come si consultano i dati?",
+         "Dashboard, mappe e grafici mostrano le misure in tempo reale e lo storico, che si può anche esportare. "
+         "Console web e app mobile permettono la consultazione da remoto; le console sono disponibili presso il "
+         "cliente o come servizio web."),
+        ("Come funzionano gli allarmi?",
+         "Soglie configurabili attivano avvisi di guardia o di allarme. Eventi e allarmi arrivano agli operatori "
+         "con il contesto necessario per valutare la situazione e intervenire rapidamente."),
+        ("Vi occupate anche di installazione e manutenzione?",
+         "Sì: seguiamo i progetti dalla progettazione alla direzione lavori. Test funzionali e messa in servizio "
+         "verificano il sistema, e una diagnostica chiara con la documentazione agevola gli interventi durante "
+         "l'intero ciclo di vita."),
+        ("Come posso chiedere un preventivo?",
+         "Dalle pagine di prodotti e soluzioni, con il pulsante \"Richiedi un preventivo\", oppure dalla pagina "
+         "Contatti: la richiesta arriva direttamente ad Axatel."),
+    ],
+}

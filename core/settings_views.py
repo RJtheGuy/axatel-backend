@@ -98,20 +98,34 @@ class TeamView(APIView):
         if language not in SUPPORTED_LANGUAGES:
             language = "it"
         team = TeamSettings.for_site(site)
-        everyone = {m.pk: m for m in team.members.select_related("photo").order_by("sort_order")}
+        everyone = {
+            m.pk: m
+            for m in team.members.select_related("photo").prefetch_related("also_reports_to").order_by("sort_order")
+        }
 
-        def manager_of(member):
-            """Nearest visible person up the chain (a hidden manager is
-            skipped, so their team stays attached to the tree). Loops
-            entered by mistake in the CMS end at the top."""
+        def visible_from(member, boss_id):
+            """Nearest visible person from boss_id up the chain (a hidden
+            manager is skipped, so their team stays attached to the tree).
+            Loops entered by mistake in the CMS end at the top."""
             seen = {member.pk}
-            boss = everyone.get(member.reports_to_id)
+            boss = everyone.get(boss_id)
             while boss is not None and boss.pk not in seen:
                 if boss.visible:
                     return boss.pk
                 seen.add(boss.pk)
                 boss = everyone.get(boss.reports_to_id)
             return None
+
+        def manager_of(member):
+            return visible_from(member, member.reports_to_id)
+
+        def also_managers_of(member, main):
+            ids = []
+            for other in member.also_reports_to.all():
+                boss = visible_from(member, other.pk)
+                if boss and boss != main and boss != member.pk and boss not in ids:
+                    ids.append(boss)
+            return ids
 
         members = []
         for member in everyone.values():
@@ -133,6 +147,7 @@ class TeamView(APIView):
                 "bio": member.translated("bio", language),
                 "photo": photo,
                 "reportsTo": manager_of(member),
+                "alsoReportsTo": also_managers_of(member, manager_of(member)),
                 "department": member.translated("department", language),
             })
-        return Response({"members": members})
+        return Response({"members": members, "labelMode": team.label_mode})

@@ -1,5 +1,6 @@
+from django import forms
 from django.db import models
-from modelcluster.fields import ParentalKey
+from modelcluster.fields import ParentalKey, ParentalManyToManyField
 from modelcluster.models import ClusterableModel
 from wagtail import blocks
 from wagtail.admin.panels import FieldPanel, FieldRowPanel, InlinePanel, MultiFieldPanel
@@ -257,9 +258,26 @@ class ChatbotSettings(BaseSiteSetting):
 # them. While the list is empty, the site shows its built-in example team.
 
 
+TEAM_LABEL_CHOICES = [
+    ("department", "Reparto (solo sotto i responsabili)"),
+    ("role", "Ruolo (sotto ogni persona)"),
+    ("both", "Ruolo e reparto"),
+    ("none", "Nessuna etichetta"),
+]
+
+
 @register_setting(icon="group")
 class TeamSettings(ClusterableModel, BaseSiteSetting):
+    label_mode = models.CharField(
+        max_length=20,
+        choices=TEAM_LABEL_CHOICES,
+        default="department",
+        verbose_name="Etichetta sotto il nome",
+        help_text="Cosa evidenziare sotto ogni persona nell'organigramma.",
+    )
+
     panels = [
+        FieldPanel("label_mode"),
         InlinePanel(
             "members",
             heading="Persone del team",
@@ -274,7 +292,7 @@ class TeamSettings(ClusterableModel, BaseSiteSetting):
         verbose_name = "Team"
 
 
-class TeamMember(Orderable):
+class TeamMember(ClusterableModel, Orderable):
     setting = ParentalKey(TeamSettings, related_name="members", on_delete=models.CASCADE)
     name = models.CharField(max_length=120, verbose_name="Nome e cognome")
     role = models.CharField(max_length=120, blank=True, verbose_name="Ruolo")
@@ -311,6 +329,18 @@ class TeamMember(Orderable):
                   "Vuoto = in cima all'organigramma. Una persona appena aggiunta compare "
                   "in questo elenco dopo il primo salvataggio.",
     )
+    # Extra managers (matrix reporting, e.g. a person working for two
+    # departments). The person stays placed under "Riporta a"; the page
+    # draws a lighter line to each of these.
+    also_reports_to = ParentalManyToManyField(
+        "self",
+        symmetrical=False,
+        blank=True,
+        related_name="dotted_reports",
+        verbose_name="Riporta anche a",
+        help_text="Facoltativo: altri responsabili di questa persona. Sulla pagina compare "
+                  "una linea più sottile verso ciascuno.",
+    )
     department = models.CharField(
         max_length=80,
         blank=True,
@@ -329,6 +359,7 @@ class TeamMember(Orderable):
         MultiFieldPanel([FieldPanel("bio_en"), FieldPanel("bio_fr")], heading="Descrizione EN / FR", classname="collapsed"),
         MultiFieldPanel([
             FieldPanel("reports_to"),
+            FieldPanel("also_reports_to", widget=forms.CheckboxSelectMultiple),
             FieldRowPanel([FieldPanel("department"), FieldPanel("department_en"), FieldPanel("department_fr")]),
         ], heading="Organigramma"),
     ]
@@ -339,6 +370,9 @@ class TeamMember(Orderable):
         super().clean()
         if self.pk and self.reports_to_id == self.pk:
             raise ValidationError({"reports_to": "Una persona non può riportare a se stessa."})
+
+    class Meta(Orderable.Meta):
+        ordering = ["sort_order"]
 
     def translated(self, field: str, language: str) -> str:
         if language != "it":

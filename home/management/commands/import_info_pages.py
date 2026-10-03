@@ -8,8 +8,9 @@ same: /azienda/<slug>/ and /approfondimenti/glossario/.
     python manage.py import_info_pages --dry-run
 
 Only ADDS: a section or page whose slug already exists is left untouched.
-"Coming soon" pages (Academy, News, FAQ) are not created; write them in the
-CMS when they are ready. Until a page exists here, the site shows its
+Academy and News stay "coming soon" (News now lives at /news). The FAQ is
+created as a DRAFT with questions answered from text already on the site:
+review it in the CMS and press Pubblica to put it online. Until a page exists here, the site shows its
 built-in version, so nothing disappears during the move.
 """
 import html
@@ -18,7 +19,7 @@ import uuid
 
 from django.core.management.base import BaseCommand
 
-from home.info_defaults import GLOSSARY, PAGES, SECTIONS
+from home.info_defaults import FAQ_DRAFT, GLOSSARY, PAGES, SECTIONS
 from home.models import GlossaryPage, GlossaryTerm, HomePage, InfoIndexPage, InfoPage
 from products.management.commands.seed_products import DEFAULT_IMAGES, import_image
 
@@ -118,6 +119,26 @@ class Command(BaseCommand):
                 ]
                 index.add_child(instance=page)
                 page.save_revision().publish()
+
+        # A starter FAQ, saved as a draft: it goes live only when someone
+        # reviews it in the CMS and presses Pubblica.
+        where = f"/approfondimenti/{FAQ_DRAFT['slug']}/"
+        if index is not None and index.get_children().filter(slug=FAQ_DRAFT["slug"]).exists():
+            self.stdout.write(f"= {where} already in the CMS, left as it is")
+        else:
+            self.stdout.write(f"+ 'FAQ' ({where}) as a DRAFT with {len(FAQ_DRAFT['items'])} questions: review it, then Pubblica")
+            created += 1
+            if not dry_run:
+                faq = block("faq", {
+                    "heading": "Domande frequenti",
+                    "items": [{"question": q, "answer": f"<p>{html.escape(a)}</p>"} for q, a in FAQ_DRAFT["items"]],
+                })
+                page = InfoPage(
+                    title=FAQ_DRAFT["title"], slug=FAQ_DRAFT["slug"], eyebrow=FAQ_DRAFT["eyebrow"],
+                    introduction=FAQ_DRAFT["introduction"], body=json.dumps([faq]), live=False,
+                )
+                index.add_child(instance=page)
+                page.save_revision()
 
         verb = "would be created" if dry_run else "created"
         self.stdout.write(self.style.SUCCESS(f"{created} page(s) {verb}."))
