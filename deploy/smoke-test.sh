@@ -96,6 +96,15 @@ done
 [ -n "$(live_slugs home.GlossaryPage)" ] || missing="$missing glossario"
 [ -z "$missing" ] && ok "Azienda pages and Glossario are in the CMS" \
   || warn "not in the CMS yet:$missing (the site shows the built-in text)  → manage.py import_info_pages"
+# PDFs still served by the old WordPress site (www.axatel.it/wp-content/...)
+old_pdfs=$(sudo -u www-data "$PY" manage.py localize_documents --dry-run 2>/dev/null | grep -oE "^[0-9]+ page\(s\) would" | grep -oE "^[0-9]+")
+waiting=$(sudo -u www-data "$PY" manage.py localize_documents --dry-run 2>/dev/null | grep -c "draft waiting")
+if [ "${old_pdfs:-0}" = 0 ] && [ "$waiting" = 0 ]; then ok "no page links PDFs on axatel.it"
+else warn "${old_pdfs:-0} page(s) still link PDFs on axatel.it, $waiting with a draft waiting  → manage.py localize_documents"; fi
+doc=$(sudo -u www-data "$PY" manage.py shell -c "from wagtail.documents import get_document_model as g; d=g().objects.order_by('id').first(); print(d.file.url if d else '')" 2>/dev/null | tail -1)
+if [ -n "$doc" ]; then
+  c=$(code "$SITE$doc"); [ "$c" = 200 ] && ok "documents (PDF) open from this server ($doc)" || bad "document $doc → $c (nginx must serve /media/)"
+fi
 for t in casi.CasiIndexPage; do
   [ -n "$(live_slugs $t)" ] && ok "$t published" || bad "$t missing or not published"
 done

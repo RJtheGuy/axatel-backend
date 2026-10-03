@@ -118,7 +118,7 @@ A **block** is one section of a page. Editors stack blocks to build a page. The 
 | Loghi partner | `partner_logos` | Row of logos | `CmsPartnerLogos.vue` |
 | Griglia casi di successo | `portfolio_grid` | Case-study cards | `CmsPortfolioGrid.vue` |
 | Sezione di testo | `text_section` | Heading + text + short "key point" pills | `CmsTextSection.vue` |
-| Prodotto in evidenza | `product_feature` | Highlighted product box, links to its Prodotto page | `CmsProductFeature.vue` |
+| Prodotto in evidenza | `product_feature` | Highlighted product box: a red button to its Prodotto page, then any number of **Pulsanti** (each to a page, a PDF in Documenti or an address; outline or red) | `CmsProductFeature.vue` |
 | Cosa misuriamo | `measures` | Quantities measured (name, unit, note) | `CmsMeasures.vue` |
 | Come funziona (passaggi) | `steps` | Numbered steps | `CmsSteps.vue` |
 | Schede dispositivi | `device_cards` | Pick Prodotto pages → cards with picture and link | `CmsDeviceCards.vue` |
@@ -187,7 +187,13 @@ This is the most important thing to know. Several pages look like CMS pages but 
 
 **Change the menu:** Impostazioni → Navigazione. Each "Voce di menu" is a top item. Add "Gruppi" to make a dropdown. Link to pages with the page chooser. Changes are item by item: add one entry with "+", drag to reorder, or switch **Visibile** off to hide one — the rest of the menu is untouched.
 
-**Add a product:** Pages → Home → Prodotti → Add child page → *Prodotto*. Fill in category, tagline, picture, add specification rows, upload the datasheet PDF (or paste a link), publish. It appears in `/prodotti` under its category. To show it on a solution page, add a "Schede dispositivi" or "Prodotto in evidenza" block there and pick it.
+**Arrange the columns of a dropdown:** each group has **Colonna**. *Automatica* (default) puts the group under the column that is shortest so far, so one long group and two short ones balance out. Choose *Colonna 1/2/3* to fix where a group goes (e.g. Strutture → Colonna 2 to sit under Viabilità); groups in the same column stack in the order of the list. Choosing *Colonna 3* makes that dropdown three columns wide. On phones the dropdown is always one list, in the order of the groups. To move a **link** from one group to another: add it in the new group (pick the same page) and delete it from the old one.
+
+**Buttons on a "Prodotto in evidenza" box:** under **Pulsanti** press "+" for each button: write the text, then choose a page of the site, *or* a PDF from Documenti (upload it there first, or straight from the chooser), *or* type an address. *Aspetto* picks outline or red. Drag to reorder. The old "Link alternativo" still works but holds one link only.
+
+**PDFs live on this server:** `python manage.py localize_documents` copies the PDFs that pages still linked on www.axatel.it into Documenti and points product datasheets and "Prodotto in evidenza" boxes to them (pages are republished; a page with a draft waiting is listed and left alone). If the server cannot download them, put the files in a folder and add `--from-folder /that/folder`. The smoke test warns while any page still links a PDF on axatel.it.
+
+**Add a product:** Pages → Home → Prodotti → Add child page → *Prodotto*. Fill in category, tagline, picture, add specification rows, upload the datasheet PDF in "Scheda tecnica (PDF)" (keep files on this server: avoid links to other sites), publish. It appears in `/prodotti` under its category. To show it on a solution page, add a "Schede dispositivi" or "Prodotto in evidenza" block there and pick it.
 
 **Show client logos / certifications on the homepage:** Pages → Home → edit → panel "Fiducia" → add logos (name, image, optional link) → publish. The strip above the footer appears only when at least one entry exists. Use only clients who agreed and certifications actually held.
 

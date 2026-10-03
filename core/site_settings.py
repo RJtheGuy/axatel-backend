@@ -60,6 +60,9 @@ class NavSubLinkBlock(blocks.StructBlock):
         }
 
 
+NAV_COLUMN_CHOICES = [("", "Automatica"), ("1", "Colonna 1 (sinistra)"), ("2", "Colonna 2"), ("3", "Colonna 3")]
+
+
 class NavGroupBlock(blocks.StructBlock):
     label = blocks.CharBlock(max_length=60, help_text="Titolo colonna, es. 'Piattaforme'")
     label_en = blocks.CharBlock(max_length=60, required=False, label="Etichetta EN")
@@ -67,6 +70,11 @@ class NavGroupBlock(blocks.StructBlock):
     visible = blocks.BooleanBlock(
         required=False, default=True, label="Visibile",
         help_text="Togli la spunta per nascondere questa voce dal sito senza cancellarla.",
+    )
+    column = blocks.ChoiceBlock(
+        choices=NAV_COLUMN_CHOICES, default="", required=False, label="Colonna",
+        help_text="Dove sta il gruppo nel menu a tendina (da computer). Automatica = sotto la colonna più corta. "
+                  "Più gruppi nella stessa colonna stanno uno sotto l'altro, nell'ordine dell'elenco.",
     )
     links = blocks.ListBlock(NavSubLinkBlock())
 
@@ -77,9 +85,11 @@ class NavGroupBlock(blocks.StructBlock):
     def get_api_representation(self, value, context=None):
         links_block = self.child_blocks["links"]
         links = [link for link in value.get("links", []) if _visible(link)]
+        column = str(value.get("column") or "")
         return {
             "label": _label(value, context),
             "visible": _visible(value),
+            "column": int(column) if column.isdigit() else None,
             "links": links_block.get_api_representation(links, context=context),
         }
 

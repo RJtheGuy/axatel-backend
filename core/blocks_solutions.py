@@ -6,10 +6,11 @@ measure", "how it works" steps, device cards and case-study cards.
 They are part of BODY_BLOCKS, so editors can use them on any page.
 """
 from wagtail import blocks
+from wagtail.documents.blocks import DocumentChooserBlock
 from wagtail.models import Page
 from wagtail.rich_text import expand_db_html
 
-from .blocks_shared import INLINE_TEXT_FEATURES, ExpandedRichTextBlock, _absolutize_media_urls
+from .blocks_shared import INLINE_TEXT_FEATURES, ExpandedRichTextBlock, _absolutize_media_urls, document_file_url
 
 
 def _image(image):
@@ -56,16 +57,54 @@ class TextSectionBlock(blocks.StructBlock):
         }
 
 
+BUTTON_STYLE_CHOICES = [("secondary", "Contorno"), ("primary", "Pieno (rosso)")]
+
+
+class LinkButtonBlock(blocks.StructBlock):
+    """One button: to a page of the site, to a PDF in Documenti, or to any
+    address. If more than one is filled in, the page wins, then the PDF."""
+    label = blocks.CharBlock(max_length=60, label="Testo del pulsante", help_text="Es. 'Scheda tecnica', 'Manuale', 'Video'")
+    page = blocks.PageChooserBlock(required=False, label="Pagina del sito")
+    document = DocumentChooserBlock(
+        required=False, label="Documento (PDF)",
+        help_text="Carica il file in Documenti: resta sul vostro server e si apre in una nuova scheda.",
+    )
+    url = blocks.CharBlock(max_length=300, required=False, label="Oppure un indirizzo", help_text="Es. https://… o /contatti")
+    style = blocks.ChoiceBlock(choices=BUTTON_STYLE_CHOICES, default="secondary", label="Aspetto")
+
+    class Meta:
+        icon = "link"
+        label = "Pulsante"
+
+    def get_api_representation(self, value, context=None):
+        page = _live_specific([value.get("page")])
+        if page:
+            href, kind = page[0].url, "page"
+        elif value.get("document"):
+            href, kind = document_file_url(value["document"]), "document"
+        else:
+            href = (value.get("url") or "").strip()
+            kind = "page" if href.startswith("/") and not href.startswith("/media/") else "url"
+        return {"label": value.get("label", ""), "href": href, "kind": kind, "style": value.get("style") or "secondary"}
+
+
 class ProductFeatureBlock(blocks.StructBlock):
     label = blocks.CharBlock(max_length=60, required=False, label="Etichetta", help_text="Es. 'La soluzione Axatel'")
     name = blocks.CharBlock(max_length=120, label="Nome prodotto o servizio")
     description = blocks.TextBlock(label="Descrizione")
     product = blocks.PageChooserBlock(
         page_type="products.ProductPage", required=False, label="Pagina prodotto",
-        help_text="Se scelta, il riquadro rimanda alla scheda del prodotto.",
+        help_text="Se scelta, il primo pulsante (rosso) rimanda alla scheda del prodotto.",
     )
-    link_url = blocks.CharBlock(max_length=300, required=False, label="Link alternativo", help_text="Es. una scheda tecnica PDF.")
+    link_url = blocks.CharBlock(
+        max_length=300, required=False, label="Link alternativo",
+        help_text="Vecchio campo per un solo link: per i PDF usa i Pulsanti qui sotto.",
+    )
     link_label = blocks.CharBlock(max_length=60, required=False, label="Testo link")
+    buttons = blocks.ListBlock(
+        LinkButtonBlock(), required=False, label="Pulsanti",
+        help_text="Quanti ne servono: schede tecniche, manuali, pagine collegate. Trascina per cambiare l'ordine.",
+    )
 
     class Meta:
         icon = "pick"
@@ -73,6 +112,9 @@ class ProductFeatureBlock(blocks.StructBlock):
 
     def get_api_representation(self, value, context=None):
         product = _live_specific([value.get("product")])
+        button_block = self.child_blocks["buttons"].child_block
+        buttons = [button_block.get_api_representation(item, context=context) for item in value.get("buttons") or []]
+        buttons = [b for b in buttons if b["label"] and b["href"]]
         return {
             "label": value.get("label", ""),
             "name": value.get("name", ""),
@@ -80,6 +122,7 @@ class ProductFeatureBlock(blocks.StructBlock):
             "product_url": product[0].url if product else None,
             "link_url": value.get("link_url", ""),
             "link_label": value.get("link_label", ""),
+            "buttons": buttons,
         }
 
 
