@@ -1,10 +1,12 @@
 from django.db import models
+from modelcluster.fields import ParentalKey
+from rest_framework.fields import Field
 from wagtail import blocks
-from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel
 from wagtail.api import APIField
 from wagtail.fields import StreamField
 from wagtail.images.blocks import ImageChooserBlock
-from wagtail.models import Page
+from wagtail.models import Orderable, Page
 from wagtailseo.models import SeoMixin
 
 from core.api_blocks import ImageAPIField
@@ -115,6 +117,7 @@ class HomePage(SeoMixin, Page):
         "monitoring.MonitoringIndexPage",
         "solutions.SolutionsIndexPage",
         "products.ProductIndexPage",
+        "home.InfoIndexPage",
     ]
 
     content_panels = Page.content_panels + [
@@ -182,3 +185,133 @@ class FlexPage(SeoMixin, Page):
 
     class Meta:
         verbose_name = "Pagina generica"
+
+
+# ── Information pages: Azienda and Approfondimenti ─────────────────────────
+# /azienda/chi-siamo, /azienda/bilancio-sostenibilita, /approfondimenti/faq …
+# A "Sezione" (InfoIndexPage, slug "azienda" or "approfondimenti") holds
+# "Pagina informativa" pages and the "Glossario". The URL is the path in the
+# tree, so a page with slug "chi-siamo" under "azienda" is /azienda/chi-siamo.
+# While a page doesn't exist here, the site shows its built-in version
+# (axatel-frontend/app/data/contentPages.ts), so nothing disappears.
+
+
+class InfoIndexPage(SeoMixin, Page):
+    api_fields = [APIField("intro")]
+
+    intro = models.TextField(blank=True, verbose_name="Introduzione")
+
+    parent_page_types = ["home.HomePage"]
+    subpage_types = ["home.InfoPage", "home.GlossaryPage"]
+
+    content_panels = Page.content_panels + [FieldPanel("intro")]
+    promote_panels = SeoMixin.promote_panels
+
+    class Meta:
+        verbose_name = "Sezione informativa"
+        verbose_name_plural = "Sezioni informative"
+
+
+class InfoPage(SeoMixin, Page):
+    """A company or insight page: header (eyebrow, introduction, picture)
+    and a body built from blocks."""
+
+    api_fields = [
+        APIField("eyebrow"),
+        APIField("introduction"),
+        APIField("cover_image", serializer=ImageAPIField()),
+        APIField("body"),
+    ]
+
+    eyebrow = models.CharField(
+        max_length=80, blank=True, verbose_name="Occhiello",
+        help_text="Parola chiave sopra l'introduzione, es. 'Tecnologia e infrastrutture'.",
+    )
+    introduction = models.TextField(
+        max_length=400, blank=True, verbose_name="Introduzione",
+        help_text="Una o due frasi in apertura. Usata anche come descrizione per Google se quella SEO è vuota.",
+    )
+    cover_image = models.ForeignKey(
+        "wagtailimages.Image", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="+", verbose_name="Immagine",
+    )
+    body = StreamField(BODY_BLOCKS, use_json_field=True, blank=True, verbose_name="Contenuto")
+
+    parent_page_types = ["home.InfoIndexPage"]
+    subpage_types = []
+
+    content_panels = Page.content_panels + [
+        MultiFieldPanel([
+            FieldPanel("eyebrow"),
+            FieldPanel("introduction"),
+            FieldPanel("cover_image"),
+        ], heading="Apertura"),
+        FieldPanel("body"),
+    ]
+    promote_panels = SeoMixin.promote_panels
+
+    def get_meta_description(self):
+        return self.search_description or self.introduction
+
+    class Meta:
+        verbose_name = "Pagina informativa"
+        verbose_name_plural = "Pagine informative"
+
+
+class GlossaryTermsField(Field):
+    def to_representation(self, value):
+        return [
+            {
+                "term": item.term,
+                "definition": item.definition,
+                "aliases": [a.strip() for a in (item.aliases or "").split(",") if a.strip()],
+            }
+            for item in value.all().order_by("sort_order")
+        ]
+
+
+class GlossaryPage(SeoMixin, Page):
+    """/approfondimenti/glossario: a searchable list of terms. Translating
+    the page ("Traduci") copies the terms, ready to be translated."""
+
+    api_fields = [
+        APIField("eyebrow"),
+        APIField("introduction"),
+        APIField("terms", serializer=GlossaryTermsField()),
+    ]
+
+    eyebrow = models.CharField(max_length=80, blank=True, verbose_name="Occhiello")
+    introduction = models.TextField(max_length=400, blank=True, verbose_name="Introduzione")
+
+    parent_page_types = ["home.InfoIndexPage"]
+    subpage_types = []
+    max_count_per_parent = 1
+
+    content_panels = Page.content_panels + [
+        FieldPanel("eyebrow"),
+        FieldPanel("introduction"),
+        InlinePanel("terms", heading="Termini", label="Termine",
+                    help_text="L'ordine non conta: il sito li mostra in ordine alfabetico."),
+    ]
+    promote_panels = SeoMixin.promote_panels
+
+    def get_meta_description(self):
+        return self.search_description or self.introduction
+
+    class Meta:
+        verbose_name = "Glossario"
+
+
+class GlossaryTerm(Orderable):
+    page = ParentalKey(GlossaryPage, related_name="terms", on_delete=models.CASCADE)
+    term = models.CharField(max_length=120, verbose_name="Termine")
+    definition = models.TextField(max_length=800, verbose_name="Definizione")
+    aliases = models.CharField(
+        max_length=240, blank=True, verbose_name="Altri nomi",
+        help_text="Separati da virgola; servono alla ricerca. Es. 'Application Programming Interface'.",
+    )
+
+    panels = [FieldPanel("term"), FieldPanel("definition"), FieldPanel("aliases")]
+
+    def __str__(self):
+        return self.term

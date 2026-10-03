@@ -15,6 +15,7 @@ from .blocks_sections import (
 )
 from .blocks_shared import SECTION_VARIANT_CHOICES, INLINE_TEXT_FEATURES, ExpandedRichTextBlock
 from .blocks_solutions import (
+    FaqBlock,
     TextSectionBlock,
     ProductFeatureBlock,
     MeasuresBlock,
@@ -142,7 +143,7 @@ class SpacerBlock(blocks.StructBlock):
 
 
 # ── The registry ────────────────────────────────────────────────────────
-# 23 block types, each appearing exactly once. If you add a new block,
+# 24 block types, each appearing exactly once. If you add a new block,
 # add it here ONCE - check this list before pasting, don't just append.
 BODY_BLOCKS = [
     ("hero", HeroBlock()),
@@ -169,4 +170,5 @@ BODY_BLOCKS = [
     ("steps", StepsBlock()),
     ("device_cards", DeviceCardsBlock()),
     ("case_cards", CaseCardsBlock()),
+    ("faq", FaqBlock()),
 ]

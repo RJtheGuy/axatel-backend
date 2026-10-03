@@ -297,6 +297,29 @@ class TeamMember(Orderable):
         verbose_name="Visibile",
         help_text="Spegni per nascondere la persona dal sito senza cancellarla.",
     )
+    # Organisation chart: who this person reports to, and the department
+    # they lead (if any). The team page draws a line only between a person
+    # and the one they report to, so departments read as separate branches.
+    reports_to = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="direct_reports",
+        verbose_name="Riporta a",
+        help_text="La persona a cui risponde (es. il responsabile del reparto, o il CEO). "
+                  "Vuoto = in cima all'organigramma. Una persona appena aggiunta compare "
+                  "in questo elenco dopo il primo salvataggio.",
+    )
+    department = models.CharField(
+        max_length=80,
+        blank=True,
+        verbose_name="Guida il reparto",
+        help_text="Solo per i responsabili: nome del reparto che guidano, es. 'Tecnico'. "
+                  "Le persone che riportano a loro fanno parte di quel reparto.",
+    )
+    department_en = models.CharField(max_length=80, blank=True, verbose_name="Reparto (EN)")
+    department_fr = models.CharField(max_length=80, blank=True, verbose_name="Reparto (FR)")
 
     panels = [
         FieldRowPanel([FieldPanel("name"), FieldPanel("visible")]),
@@ -304,7 +327,18 @@ class TeamMember(Orderable):
         FieldRowPanel([FieldPanel("role"), FieldPanel("role_en"), FieldPanel("role_fr")], heading="Ruolo"),
         FieldPanel("bio"),
         MultiFieldPanel([FieldPanel("bio_en"), FieldPanel("bio_fr")], heading="Descrizione EN / FR", classname="collapsed"),
+        MultiFieldPanel([
+            FieldPanel("reports_to"),
+            FieldRowPanel([FieldPanel("department"), FieldPanel("department_en"), FieldPanel("department_fr")]),
+        ], heading="Organigramma"),
     ]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        super().clean()
+        if self.pk and self.reports_to_id == self.pk:
+            raise ValidationError({"reports_to": "Una persona non può riportare a se stessa."})
 
     def translated(self, field: str, language: str) -> str:
         if language != "it":

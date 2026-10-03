@@ -88,6 +88,14 @@ for s in traffico cantieri frane fiumi aria ponti edifici; do
 done
 [ -z "$missing" ] && ok "monitoring topics are in the CMS" \
   || warn "not in the CMS yet:$missing (the site shows the built-in text)  → manage.py seed_monitoring"
+info=$(live_slugs home.InfoPage)
+missing=""
+for s in chi-siamo bilancio-sostenibilita invia-il-cv diventa-partner; do
+  [[ " $info " == *" $s "* ]] || missing="$missing $s"
+done
+[ -n "$(live_slugs home.GlossaryPage)" ] || missing="$missing glossario"
+[ -z "$missing" ] && ok "Azienda pages and Glossario are in the CMS" \
+  || warn "not in the CMS yet:$missing (the site shows the built-in text)  → manage.py import_info_pages"
 for t in casi.CasiIndexPage; do
   [ -n "$(live_slugs $t)" ] && ok "$t published" || bad "$t missing or not published"
 done
@@ -97,7 +105,7 @@ n=$(live_slugs casi.CasoSuccessoPage | wc -w); [ "$n" -gt 0 ] && ok "$n case stu
 section "5. Frontend pages"
 ROUTES="/ /casi /monitoraggio /contatti /blog /servizi /soluzioni /azienda/team /azienda/chi-siamo
 /monitoraggio/traffico /monitoraggio/ponti /soluzioni/angel-bpm /soluzioni/lorawan /approfondimenti/glossario
-/prodotti /prodotti/angel-river /prodotti/geo-angel /monitoraggio/aria /en /en/casi /robots.txt /sitemap.xml /feed.xml"
+/azienda/bilancio-sostenibilita /azienda/invia-il-cv /approfondimenti/faq /prodotti /prodotti/angel-river /prodotti/geo-angel /monitoraggio/aria /en /en/casi /robots.txt /sitemap.xml /feed.xml"
 for r in $ROUTES; do
   c=$(code "$SITE$r")
   case "$c" in

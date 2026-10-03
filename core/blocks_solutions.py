@@ -159,3 +159,35 @@ class CaseCardsBlock(blocks.StructBlock):
                 for p in _live_specific(value.get("cases", []))
             ],
         }
+
+
+class FaqItemBlock(blocks.StructBlock):
+    question = blocks.CharBlock(max_length=200, label="Domanda")
+    answer = blocks.RichTextBlock(features=["bold", "italic", "link", "ol", "ul"], label="Risposta")
+
+    class Meta:
+        icon = "help"
+        label = "Domanda"
+
+
+class FaqBlock(blocks.StructBlock):
+    """Questions and answers that open one at a time. The site also tells
+    search engines they are an FAQ (schema.org FAQPage)."""
+    heading = blocks.CharBlock(max_length=120, required=False, default="Domande frequenti", label="Titolo")
+    items = blocks.ListBlock(FaqItemBlock(), label="Domande")
+
+    class Meta:
+        icon = "help"
+        label = "Domande frequenti"
+
+    def get_api_representation(self, value, context=None):
+        return {
+            "heading": value.get("heading", ""),
+            "items": [
+                {
+                    "question": item.get("question", ""),
+                    "answer": _absolutize_media_urls(expand_db_html(item["answer"].source)) if item.get("answer") else "",
+                }
+                for item in value.get("items", [])
+            ],
+        }

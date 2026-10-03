@@ -60,6 +60,11 @@ Root
     │   └── <12 solutions>                (Soluzione)             /soluzioni/<slug>/
     ├── Prodotti                          (Indice Prodotti)       /prodotti/
     │   └── <products>                    (Prodotto)              /prodotti/<slug>/
+    ├── Azienda                           (Sezione informativa)   /azienda/
+    │   └── Chi siamo, Bilancio…          (Pagina informativa)    /azienda/<slug>/
+    ├── Approfondimenti                   (Sezione informativa)   /approfondimenti/
+    │   ├── FAQ, Academy, News            (Pagina informativa)    /approfondimenti/<slug>/
+    │   └── Glossario                     (Glossario)             /approfondimenti/glossario/
     └── <any other page>                  (Pagina generica)       /<slug>/
 ```
 
@@ -82,6 +87,9 @@ All page types have the **Promote** tab (SEO title, meta description, social ima
 | Indice Blog / Articolo Blog | `blog.BlogIndexPage` / `blog.BlogPost` | Home / Indice Blog | Author, date, cover, excerpt, blocks, tags | `pages/blog/index.vue`, `pages/blog/[slug].vue` |
 | Indice Servizi / Servizio | `services.*` | Home / Indice Servizi | Emoji, card text, blocks, Schema.org type | `pages/servizi/index.vue`, `pages/[area]/[slug].vue` |
 | Indice Soluzioni / Soluzione | `solutions.*` | Home / Indice Soluzioni | Group (Piattaforme/Sensori/Tecnologie/Servizi), eyebrow, card text, picture, blocks | `pages/soluzioni/index.vue`, `pages/soluzioni/[slug].vue` |
+| Sezione informativa | `home.InfoIndexPage` | Home | Intro (plain text) | `pages/[...slug].vue` (lists its pages) |
+| Pagina informativa | `home.InfoPage` | Sezione informativa | Eyebrow, introduction, picture, blocks | `pages/[area]/[slug].vue` → `components/content/InfoPageView.vue` |
+| Glossario | `home.GlossaryPage` | Sezione informativa (one per section) | Eyebrow, introduction, **terms** (term, definition, other names) | same, as a searchable list |
 | Indice Prodotti / Prodotto | `products.*` | Home / Indice Prodotti | Model code, category, tagline, picture, **specifications** (label + value rows), datasheet (uploaded PDF or link), blocks | `pages/prodotti/index.vue`, `pages/prodotti/[slug].vue` |
 
 ---
@@ -115,6 +123,7 @@ A **block** is one section of a page. Editors stack blocks to build a page. The 
 | Come funziona (passaggi) | `steps` | Numbered steps | `CmsSteps.vue` |
 | Schede dispositivi | `device_cards` | Pick Prodotto pages → cards with picture and link | `CmsDeviceCards.vue` |
 | Casi di successo collegati | `case_cards` | Pick case studies → cards | `CmsCaseCards.vue` |
+| Domande frequenti | `faq` | Questions that open one at a time; also sent to Google as FAQPage data | `CmsFaq.vue` |
 
 The last two follow the chosen pages: rename or re-picture a product and every card showing it updates. Unpublished pages are left out automatically.
 
@@ -150,8 +159,9 @@ This is the most important thing to know. Several pages look like CMS pages but 
 | `/soluzioni/<slug>` | CMS (Soluzione pages) | **Editable.** The built-in text in `app/data/contentPages.ts` is only a fallback, shown when a slug has no published Soluzione page. |
 | "Come lavoriamo" steps and the closing "Hai un progetto?" box on solution/product pages | `i18n/messages-catalogue.ts` | Interface text, in IT/EN/FR. |
 | `/monitoraggio/<slug>` | CMS (Argomento monitoraggio pages) | **Editable.** The built-in text in `app/data/monitoring.ts` is only a fallback, shown when a topic has no published page. |
-| `/approfondimenti/academy, news, faq, glossario` | `app/data/contentPages.ts`, `app/data/glossary.ts` | Hard-coded; academy/news/faq are "coming soon" placeholders. |
-| `/azienda/chi-siamo, bilancio-sostenibilita, invia-il-cv, diventa-partner` | `app/data/contentPages.ts` → `companyPages` | Hard-coded. |
+| `/azienda/chi-siamo, bilancio-sostenibilita, invia-il-cv, diventa-partner` | CMS (Pagina informativa under Azienda) | **Editable** after `import_info_pages`. The text in `app/data/contentPages.ts` is only the fallback. |
+| `/approfondimenti/glossario` | CMS (Glossario under Approfondimenti) | **Editable**: terms are rows in the page. `app/data/glossary.ts` is only the fallback. |
+| `/approfondimenti/academy, news, faq` | built-in "coming soon" placeholders | Create a Pagina informativa with that slug under Approfondimenti to replace one (use the "Domande frequenti" block for the FAQ). |
 | `/azienda/team` | CMS (Impostazioni → Team) | **Editable.** `app/data/team.ts` is only the example shown while the CMS list is empty. |
 | Navbar (fallback) | `app/data/navigation.json` | Used only if Impostazioni → Navigazione is empty. |
 | Homepage case studies (fallback) | `app/pages/index.vue` | Shown if the CMS has no published case studies. |
@@ -186,9 +196,12 @@ This is the most important thing to know. Several pages look like CMS pages but 
 python manage.py seed_products --images /var/www/axatel-frontend/app/assets/immagini
 python manage.py import_solution_pages --images /var/www/axatel-frontend/app/assets/immagini
 python manage.py seed_monitoring --images /var/www/axatel-frontend/app/assets/immagini
+python manage.py import_info_pages --images /var/www/axatel-frontend/app/assets/immagini
 python manage.py seed_navigation            # add --dry-run to preview
 ```
 Each command only adds what is missing (matched by slug, or by Italian label for the menu). Run `seed_products` before `import_solution_pages` so solution pages can link to products.
+
+**Organisation chart on the team page:** each person has **Riporta a** (who they report to) and, for managers, **Guida il reparto** (the department they lead). When at least one person reports to someone, the page draws an org chart: lines only between a person and their manager, departments as separate branches. Save a new person once before choosing them in someone else's "Riporta a". Hiding a manager keeps their team attached to the next person up.
 
 **Add or change a team member:** Impostazioni → Team → **+ Persona**. Fill in name and photo (square, at least 400×400 px), role and a short description; English/French versions are optional (empty = Italian text is shown). Drag people to change their order. Switch **Visibile** off to hide someone without deleting them. Save. The first person you add replaces the example team on the site.
 
@@ -224,6 +237,9 @@ Frontend (`axatel-frontend` service environment): `NUXT_API_INTERNAL_BASE` (serv
 ---
 
 ## 9. For developers
+
+**Adding a new kind of CMS page** (model → migration → API → Nuxt page → fallback → sitemap → import command → smoke test) is written up step by step, with Chi siamo as the worked example, in the "Adding a CMS Page to Axatel" guide. The short version: define the page type in a backend app's `models.py` (fields, `content_panels`, `api_fields`, `parent_page_types`), run `makemigrations`, add the Nuxt page that fetches it with `useCms()` and keeps a built-in fallback, add its type to `server/routes/sitemap.xml.ts`, and add a line to `deploy/smoke-test.sh`.
+
 
 **API endpoints the frontend uses**
 

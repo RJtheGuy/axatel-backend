@@ -88,8 +88,9 @@ class SiteSettingsView(APIView):
 
 class TeamView(APIView):
     """People for /azienda/team (Impostazioni → Team), visible ones only,
-    in the editors' order, with role and description in the requested
-    language (Italian when no translation was entered)."""
+    in the editors' order, with role, description and department in the
+    requested language (Italian when no translation was entered), and
+    "reportsTo": the id of the person they report to, or null at the top."""
 
     def get(self, request):
         site = Site.find_for_request(request)
@@ -97,8 +98,25 @@ class TeamView(APIView):
         if language not in SUPPORTED_LANGUAGES:
             language = "it"
         team = TeamSettings.for_site(site)
+        everyone = {m.pk: m for m in team.members.select_related("photo").order_by("sort_order")}
+
+        def manager_of(member):
+            """Nearest visible person up the chain (a hidden manager is
+            skipped, so their team stays attached to the tree). Loops
+            entered by mistake in the CMS end at the top."""
+            seen = {member.pk}
+            boss = everyone.get(member.reports_to_id)
+            while boss is not None and boss.pk not in seen:
+                if boss.visible:
+                    return boss.pk
+                seen.add(boss.pk)
+                boss = everyone.get(boss.reports_to_id)
+            return None
+
         members = []
-        for member in team.members.filter(visible=True).select_related("photo").order_by("sort_order"):
+        for member in everyone.values():
+            if not member.visible:
+                continue
             photo = None
             if member.photo:
                 rendition = member.photo.get_rendition("fill-400x400-c50")
@@ -114,5 +132,7 @@ class TeamView(APIView):
                 "role": member.translated("role", language),
                 "bio": member.translated("bio", language),
                 "photo": photo,
+                "reportsTo": manager_of(member),
+                "department": member.translated("department", language),
             })
         return Response({"members": members})
