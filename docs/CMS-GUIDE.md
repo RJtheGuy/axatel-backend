@@ -52,8 +52,8 @@ Root
     │   │   Ponti, Edifici
     ├── Casi                              (Indice Casi di successo) /casi/
     │   └── <one per case study>          (Caso di successo)      /casi/<slug>/
-    ├── Blog                              (Indice Blog)           /blog/
-    │   └── <articles>                    (Articolo Blog)         /blog/<slug>/
+    ├── News                              (Indice News)           /news/  (old /blog/ redirects here)
+    │   └── <news posts>                  (Articolo News)         /news/<slug>/
     ├── Servizi                           (Indice Servizi)        /servizi/
     │   └── <services>                    (Servizio)              /servizi/<slug>/
     ├── Soluzioni                         (Indice Soluzioni)      /soluzioni/
@@ -84,7 +84,7 @@ All page types have the **Promote** tab (SEO title, meta description, social ima
 | Argomento monitoraggio | `monitoring.MonitoringPage` | Indice Monitoraggio | Emoji icon, card text, category (Ambiente / Viabilità / Strutture), cover image, tags, blocks | `pages/monitoraggio/[slug].vue` |
 | Indice Casi di successo | `casi.CasiIndexPage` | Home | Intro (plain text) | `pages/casi/index.vue` |
 | Caso di successo | `casi.CasoSuccessoPage` | Indice Casi | Client, category, card description, cover image, tags, body (**rich text**, not blocks) | `pages/casi/[slug].vue` + homepage carousel |
-| Indice Blog / Articolo Blog | `blog.BlogIndexPage` / `blog.BlogPost` | Home / Indice Blog | Author, date, cover, excerpt, blocks, tags | `pages/blog/index.vue`, `pages/blog/[slug].vue` |
+| Indice News / Articolo News | `blog.BlogIndexPage` / `blog.BlogPost` (the code keeps the name "blog") | Home / Indice News | Author, date, cover, excerpt, blocks, tags | `pages/news/index.vue`, `pages/news/[slug].vue` |
 | Indice Servizi / Servizio | `services.*` | Home / Indice Servizi | Emoji, card text, blocks, Schema.org type | `pages/servizi/index.vue`, `pages/[area]/[slug].vue` |
 | Indice Soluzioni / Soluzione | `solutions.*` | Home / Indice Soluzioni | Group (Piattaforme/Sensori/Tecnologie/Servizi), eyebrow, card text, picture, blocks | `pages/soluzioni/index.vue`, `pages/soluzioni/[slug].vue` |
 | Sezione informativa | `home.InfoIndexPage` | Home | Intro (plain text) | `pages/[...slug].vue` (lists its pages) |
@@ -198,6 +198,7 @@ python manage.py import_solution_pages --images /var/www/axatel-frontend/app/ass
 python manage.py seed_monitoring --images /var/www/axatel-frontend/app/assets/immagini
 python manage.py import_info_pages --images /var/www/axatel-frontend/app/assets/immagini
 python manage.py seed_navigation            # add --dry-run to preview
+python manage.py rename_blog_to_news        # once: Blog menu link → News (/news), old News placeholder hidden
 ```
 Each command only adds what is missing (matched by slug, or by Italian label for the menu). Run `seed_products` before `import_solution_pages` so solution pages can link to products.
 

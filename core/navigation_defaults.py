@@ -217,22 +217,16 @@ DEFAULT_MENU = [
                 "label_fr": "Ressources",
                 "links": [
                     {
-                        "label": "Blog",
-                        "label_en": "Blog",
-                        "label_fr": "Blog",
-                        "href": "/blog"
+                        "label": "News",
+                        "label_en": "News",
+                        "label_fr": "Actualités",
+                        "href": "/news"
                     },
                     {
                         "label": "Academy",
                         "label_en": "Academy",
                         "label_fr": "Académie",
                         "href": "/approfondimenti/academy"
-                    },
-                    {
-                        "label": "News",
-                        "label_en": "News",
-                        "label_fr": "Actualités",
-                        "href": "/approfondimenti/news"
                     },
                     {
                         "label": "FAQ",

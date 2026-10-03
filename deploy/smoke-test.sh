@@ -103,7 +103,7 @@ n=$(live_slugs casi.CasoSuccessoPage | wc -w); [ "$n" -gt 0 ] && ok "$n case stu
 
 # ── 5. Frontend pages (through nginx, like a visitor) ────────────────────
 section "5. Frontend pages"
-ROUTES="/ /casi /monitoraggio /contatti /blog /servizi /soluzioni /azienda/team /azienda/chi-siamo
+ROUTES="/ /casi /monitoraggio /contatti /news /servizi /soluzioni /azienda/team /azienda/chi-siamo
 /monitoraggio/traffico /monitoraggio/ponti /soluzioni/angel-bpm /soluzioni/lorawan /approfondimenti/glossario
 /azienda/bilancio-sostenibilita /azienda/invia-il-cv /approfondimenti/faq /prodotti /prodotti/angel-river /prodotti/geo-angel /monitoraggio/aria /en /en/casi /robots.txt /sitemap.xml /feed.xml"
 for r in $ROUTES; do
@@ -115,6 +115,9 @@ for r in $ROUTES; do
   esac
 done
 c=$(code "$SITE/questa-pagina-non-esiste-$$"); [ "$c" = 404 ] && ok "unknown page → 404" || warn "unknown page → $c (should be 404)"
+
+c=$(code "$SITE/blog")
+[ "$c" = 301 ] && ok "/blog → 301 to /news (old links keep working)" || warn "/blog → $c (expected a 301 redirect to /news)"
 
 # ── 6. Not indexed by search engines (protects the live axatel.it) ────────
 section "6. Search engines"

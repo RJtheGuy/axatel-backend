@@ -34,7 +34,7 @@ class BlogIndexPage(SeoMixin, Page):
     promote_panels = SeoMixin.promote_panels
 
     class Meta:
-        verbose_name = "Indice Blog"
+        verbose_name = "Indice News"
 
 
 class BlogPostTag(TaggedItemBase):
@@ -108,5 +108,5 @@ class BlogPost(SeoMixin, Page):
         return self.search_description or self.intro
 
     class Meta:
-        verbose_name = "Articolo Blog"
+        verbose_name = "Articolo News"
         verbose_name_plural = "Articoli Blog"
