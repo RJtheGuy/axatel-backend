@@ -101,10 +101,22 @@ old_pdfs=$(sudo -u www-data "$PY" manage.py localize_documents --dry-run 2>/dev/
 waiting=$(sudo -u www-data "$PY" manage.py localize_documents --dry-run 2>/dev/null | grep -c "draft waiting")
 if [ "${old_pdfs:-0}" = 0 ] && [ "$waiting" = 0 ]; then ok "no page links PDFs on axatel.it"
 else warn "${old_pdfs:-0} page(s) still link PDFs on axatel.it, $waiting with a draft waiting  → manage.py localize_documents"; fi
-doc=$(sudo -u www-data "$PY" manage.py shell -c "from wagtail.documents import get_document_model as g; d=g().objects.order_by('id').first(); print(d.file.url if d else '')" 2>/dev/null | tail -1)
+# One PDF that exists on disk must open through nginx; documents whose file
+# is gone are listed separately (a CMS clean-up, not a server problem).
+docs=$(sudo -u www-data "$PY" manage.py shell -c "
+from wagtail.documents import get_document_model as g
+ok=[d for d in g().objects.order_by('-id') if d.file and d.file.storage.exists(d.file.name)]
+pdf=[d for d in ok if d.file.name.lower().endswith('.pdf')] or ok
+print('URL', pdf[0].file.url if pdf else '')
+print('MISSING', ', '.join(f'{d.title} (#{d.id})' for d in g().objects.order_by('id') if not (d.file and d.file.storage.exists(d.file.name))))
+" 2>/dev/null)
+doc=$(echo "$docs" | sed -n 's/^URL //p' | tail -1)
+missing=$(echo "$docs" | sed -n 's/^MISSING //p' | tail -1)
 if [ -n "$doc" ]; then
   c=$(code "$SITE$doc"); [ "$c" = 200 ] && ok "documents (PDF) open from this server ($doc)" || bad "document $doc → $c (nginx must serve /media/)"
 fi
+[ -z "$missing" ] && ok "every document in Documenti has its file" \
+  || warn "file missing for: $missing  → CMS Documenti: upload the file again, or delete it if unused"
 for t in casi.CasiIndexPage; do
   [ -n "$(live_slugs $t)" ] && ok "$t published" || bad "$t missing or not published"
 done
@@ -138,8 +150,10 @@ fi
 
 # ── 7. Errors logged in the last hour ────────────────────────────────────
 section "7. Recent errors (last hour)"
-# The smoke test's own "unknown page" request (section 5) is not an error.
-n=$(journalctl -u axatel-frontend --since "1 hour ago" --no-pager 2>/dev/null | grep -iE "request error|FAILED" | grep -vc "questa-pagina-non-esiste")
+# Only the running frontend (since its last restart), one line per failed
+# request. "Page not found" visits are not logged, so they never count.
+inv=$(systemctl show -p InvocationID --value axatel-frontend 2>/dev/null)
+n=$(journalctl -u axatel-frontend ${inv:+_SYSTEMD_INVOCATION_ID=$inv} --since "1 hour ago" --no-pager 2>/dev/null | grep -E "\[request error\]|FAILED" | grep -vc "questa-pagina-non-esiste")
 [ "$n" = 0 ] && ok "frontend log clean" || warn "$n error(s) in frontend log  → journalctl -u axatel-frontend --since '1 hour ago'"
 # Only lines stamped within the last hour ("[2026-09-29 21:30:38 +0200] [ERROR] …").
 since=$(date -d "1 hour ago" "+%Y-%m-%d %H:%M:%S")
