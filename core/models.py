@@ -179,6 +179,12 @@ class ContactSubmission(models.Model):
         validators=[FileExtensionValidator(["pdf", "doc", "docx", "odt", "rtf", "txt"])],
         help_text="CV o documento allegato. Massimo 10 MB.",
     )
+    language = models.CharField(max_length=5, default="it", verbose_name="Lingua del sito")
+    privacy_consent = models.BooleanField(default=False, verbose_name="Consenso privacy")
+    consent_text = models.CharField(max_length=400, blank=True, verbose_name="Testo del consenso",
+                                    help_text="La frase accettata e l'indirizzo dell'informativa in quel momento.")
+    notified_at = models.DateTimeField(null=True, blank=True, verbose_name="Notifica inviata il")
+    notify_error = models.TextField(blank=True, verbose_name="Errore di invio")
     created_at = models.DateTimeField(auto_now_add=True)
  
     class Meta:

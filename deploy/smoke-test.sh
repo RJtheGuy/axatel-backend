@@ -57,7 +57,6 @@ pending=$(sudo -u www-data "$PY" manage.py showmigrations --plan 2>/dev/null | g
 [ "$pending" = 0 ] && ok "all migrations applied" || bad "$pending migration(s) not applied  → manage.py migrate"
 deploy_warn=$(sudo -u www-data "$PY" manage.py check --deploy 2>&1 | grep -c "security.W")
 [ "$deploy_warn" = 0 ] && ok "no security warnings" || warn "$deploy_warn security warning(s) (expected until HTTPS)  → manage.py check --deploy"
-grep -qE '^ADMIN_EMAILS=.+' "$APP/.env" && ok "ADMIN_EMAILS set (contact notifications)" || warn "ADMIN_EMAILS missing in .env — nobody is emailed about contact requests"
 
 # ── 3. API (Django directly) ─────────────────────────────────────────────
 section "3. API"
@@ -165,6 +164,42 @@ c=$(code "$SITE/monitoraggio/gallerie")
 [ "$c" = 301 ] && ok "/monitoraggio/gallerie → 301 (renamed Tunnel; CMS redirects work)" || warn "/monitoraggio/gallerie → $c (expected a redirect to /monitoraggio/tunnel  → manage.py apply_site_corrections)"
 forms=$(sudo -u www-data "$PY" manage.py apply_site_corrections --dry-run 2>/dev/null | grep -c "form already on the page")
 [ "${forms:-0}" -ge 2 ] && ok "contact form on Diventa partner and Invia il CV" || warn "contact form not yet on Diventa partner / Invia il CV  → manage.py apply_site_corrections"
+
+# ── 5b. Form e-mails and privacy ─────────────────────────────────────────
+section "5b. Form e-mails and privacy"
+mail=$(sudo -u www-data "$PY" manage.py shell -c "
+from django.utils import timezone
+from datetime import timedelta
+from core import notifications as n
+from core.models import ContactSubmission as C
+from core.site_settings import FooterSettings
+from wagtail.models import Site
+print('CONFIGURED', int(n.email_configured()))
+print('RECIPIENTS', ','.join(n.recipients_for('contact')))
+print('FAILED', C.objects.filter(created_at__gte=timezone.now()-timedelta(days=30), notified_at__isnull=True).exclude(notify_error='').count())
+f=FooterSettings.for_site(Site.objects.filter(is_default_site=True).first() or Site.objects.first())
+for k in ('privacy','cookie'):
+    p=getattr(f, k+'_page')
+    print('LEGAL', k, 'live' if p and p.live else ('draft' if p else 'none'))
+" 2>/dev/null)
+if echo "$mail" | grep -q "^CONFIGURED 1"; then ok "e-mail sending configured (EMAIL_HOST in .env)"
+else warn "e-mail not configured: requests are saved but nobody is told  → EMAIL_* in $APP/.env, then manage.py send_test_email"; fi
+rcpt=$(echo "$mail" | sed -n 's/^RECIPIENTS //p')
+[ -n "$rcpt" ] && ok "form messages go to: $rcpt" || warn "no recipient for form messages  → CMS Impostazioni → Notifiche moduli"
+failed=$(echo "$mail" | sed -n 's/^FAILED //p')
+[ "${failed:-0}" = 0 ] && ok "no failed form e-mail in the last 30 days" \
+  || warn "$failed form e-mail(s) failed in the last 30 days  → CMS Richieste di contatto, then manage.py resend_notifications"
+for k in privacy cookie; do
+  st=$(echo "$mail" | sed -n "s/^LEGAL $k //p")
+  case "$st" in
+    live) ok "$k policy published and linked in the footer" ;;
+    draft) warn "$k policy is a draft  → complete it, have it checked, Pubblica" ;;
+    *) warn "$k policy page missing  → manage.py create_legal_pages" ;;
+  esac
+done
+c=$(curl -s -o /dev/null -m 20 -w "%{http_code}" -H "Host: $HOST" -H "X-Real-IP: 192.0.2.1" -X POST -F name=Smoke -F email=smoke@example.com \
+    -F message=test "$BACKEND/api/v2/contact/")
+[ "$c" = 400 ] && ok "forms refuse a request without privacy consent (400)" || warn "contact API without consent → $c (expected 400)"
 
 # ── 6. Not indexed by search engines (protects the live axatel.it) ────────
 section "6. Search engines"

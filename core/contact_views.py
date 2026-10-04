@@ -1,6 +1,5 @@
 
 from django.core.cache import cache
-from django.core.mail import mail_admins
 from django.core.exceptions import ValidationError
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -23,12 +22,9 @@ def client_ip(request) -> str:
     return request.META.get("REMOTE_ADDR", "unknown")
 
 
-QUOTE_DETAIL_FIELDS = {
-    "subject": "Prodotto o soluzione",
-    "sector": "Tipo di opera",
-    "sites": "Punti o siti",
-    "timeline": "Tempistiche",
-}
+from .notifications import QUOTE_DETAIL_FIELDS, confirm, notify  # noqa: E402
+
+CONSENT_VALUES = {"1", "true", "on", "yes", "si", "sì"}
 
 
 class ContactSubmitView(APIView):
@@ -42,6 +38,14 @@ class ContactSubmitView(APIView):
         if data.get("website"):
             return Response({"received": True}, status=status.HTTP_201_CREATED)
 
+        # GDPR: the visitor must accept the privacy notice (checkbox on every form).
+        # Checked before the one-a-minute limit, so a refused send can be retried.
+        if str(data.get("privacy") or "").strip().lower() not in CONSENT_VALUES:
+            return Response(
+                {"detail": "Per inviare la richiesta accetta l'informativa privacy."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+ 
         ip_address = client_ip(request)
         rate_key = f"contact-submit:{ip_address}"
         if not cache.add(rate_key, True, timeout=60):
@@ -52,7 +56,8 @@ class ContactSubmitView(APIView):
 
         name = (data.get("name") or "").strip()
         email = (data.get("email") or "").strip()
- 
+        language = data.get("locale") if data.get("locale") in ("it", "en", "fr") else "it"
+
         if not name or not email:
             return Response(
                 {"detail": "Nome ed email sono obbligatori."},
@@ -89,6 +94,9 @@ class ContactSubmitView(APIView):
             interests=interests,
             message=message,
             attachment=attachment,
+            language=language,
+            privacy_consent=True,
+            consent_text=(data.get("consent_text") or "").strip()[:400],
         )
         try:
             submission.full_clean()
@@ -96,26 +104,12 @@ class ContactSubmitView(APIView):
         except ValidationError:
             return Response({"detail": "Dati o documento non validi."}, status=status.HTTP_400_BAD_REQUEST)
  
+        # E-mails are a courtesy on top of the saved request: their outcome is
+        # recorded on it (Richieste di contatto) and never fails the form.
         try:
-            mail_admins(
-                subject=f"Nuova {submission.get_submission_type_display().lower()}: {submission.name}",
-                message=(
-                    f"Nome: {submission.name}\n"
-                    f"Azienda: {submission.company or '-'}\n"
-                    f"Email: {submission.email}\n"
-                    f"Telefono: {submission.phone or '-'}\n"
-                    f"Tipo: {submission.get_submission_type_display()}\n"
-                    f"Allegato: {submission.attachment.name if submission.attachment else '-'}\n"
-                    f"Interessi: {', '.join(submission.interests) or '-'}\n"
-                    + "".join(f"{QUOTE_DETAIL_FIELDS[k]}: {v}\n" for k, v in submission.details.items())
-                    + "\n"
-                    f"Messaggio:\n{submission.message or '-'}"
-                ),
-                fail_silently=True,
-            )
-        except Exception:
-            # Email is a courtesy notification, not the source of truth
-            # — the ContactSubmission row above is already saved.
+            notify(submission)
+            confirm(submission)
+        except Exception:  # noqa: BLE001
             pass
- 
+
         return Response({"received": True}, status=status.HTTP_201_CREATED)

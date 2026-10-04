@@ -55,6 +55,12 @@ def _stream_via_api_repr(stream, context=None) -> list:
 SUPPORTED_LANGUAGES = {"it", "en", "fr"}
 
 
+def _page_path(page) -> str:
+    """Address of a page on the site, without host (the frontend adds /en or /fr)."""
+    import re
+    return re.sub(r"^https?://[^/]+", "", page.specific.url or "") or "/"
+
+
 class SiteSettingsView(APIView):
 
     def get(self, request):
@@ -99,6 +105,12 @@ class SiteSettingsView(APIView):
                 "tax_label": footer.tax_label,
                 "tax_value": footer.tax_value,
                 "social": social,
+                # Privacy / Cookie policy pages, only when published.
+                "legal": [
+                    {"kind": kind, "title": page.title, "url": _page_path(page)}
+                    for kind, page in (("privacy", footer.privacy_page), ("cookie", footer.cookie_page))
+                    if page is not None and page.live
+                ],
             },
             "branding": {
                 "logo": _file_path(branding.logo),

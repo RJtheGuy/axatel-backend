@@ -230,6 +230,16 @@ class FooterSettings(BaseSiteSetting):
         help_text="Mostrati nel footer sotto 'Seguici'. Spegni 'Visibile' per nasconderne uno.",
     )
 
+    privacy_page = models.ForeignKey(
+        "wagtailcore.Page", null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+        verbose_name="Pagina Privacy policy",
+        help_text="Linkata nel footer e accanto alla casella del consenso in ogni modulo.",
+    )
+    cookie_page = models.ForeignKey(
+        "wagtailcore.Page", null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+        verbose_name="Pagina Cookie policy", help_text="Linkata nel footer.",
+    )
+
     vat_label = models.CharField(max_length=60, blank=True, default="Partita IVA:")
     vat_value = models.CharField(max_length=60, blank=True)
     tax_label = models.CharField(max_length=60, blank=True, default="Codice Fiscale:")
@@ -244,6 +254,10 @@ class FooterSettings(BaseSiteSetting):
             FieldPanel("tax_label"),
             FieldPanel("tax_value"),
         ], heading="Dati aziendali"),
+        MultiFieldPanel([
+            FieldPanel("privacy_page"),
+            FieldPanel("cookie_page"),
+        ], heading="Pagine legali"),
     ]
 
     class Meta:
@@ -452,3 +466,59 @@ class BrandingSettings(BaseSiteSetting):
 
     class Meta:
         verbose_name = "Logo e immagini del sito"
+
+
+DEFAULT_CONFIRMATION = {
+    "it": "Gentile {nome},\n\ngrazie per averci scritto: abbiamo ricevuto la tua richiesta e ti risponderemo il prima possibile, di solito entro due giorni lavorativi.\n\nIl team Axatel",
+    "en": "Dear {nome},\n\nthank you for writing to us: we have received your request and will reply as soon as possible, usually within two working days.\n\nThe Axatel team",
+    "fr": "Bonjour {nome},\n\nmerci de nous avoir écrit : nous avons bien reçu votre demande et vous répondrons au plus vite, en général sous deux jours ouvrés.\n\nL'équipe Axatel",
+}
+
+
+@register_setting(icon="mail")
+class FormNotificationSettings(BaseSiteSetting):
+    """Impostazioni → Notifiche moduli: who is e-mailed about each kind of
+    request sent from the site's forms, and the confirmation the visitor gets.
+    The requests are always saved in Richieste di contatto as well."""
+
+    emails_contact = models.TextField(
+        blank=True, verbose_name="Richieste di contatto",
+        help_text="Un indirizzo e-mail per riga. Vuoto = gli indirizzi di ADMIN_EMAILS nel file .env del server.",
+    )
+    emails_quote = models.TextField(blank=True, verbose_name="Richieste di preventivo",
+                                    help_text="Un indirizzo per riga. Vuoto = come Richieste di contatto.")
+    emails_candidate = models.TextField(blank=True, verbose_name="Candidature (CV)",
+                                        help_text="Un indirizzo per riga. Vuoto = come Richieste di contatto.")
+    emails_partner = models.TextField(blank=True, verbose_name="Proposte di collaborazione",
+                                      help_text="Un indirizzo per riga. Vuoto = come Richieste di contatto.")
+    attach_files = models.BooleanField(
+        default=True, verbose_name="Allega i documenti all'e-mail",
+        help_text="Il CV o il documento inviato dal visitatore viene allegato alla notifica.",
+    )
+    send_confirmation = models.BooleanField(
+        default=True, verbose_name="Invia una conferma al visitatore",
+        help_text="Un'e-mail che conferma la ricezione, nella lingua del sito usata dal visitatore.",
+    )
+    confirmation_it = models.TextField(blank=True, default=DEFAULT_CONFIRMATION["it"], verbose_name="Testo della conferma (IT)",
+                                       help_text="{nome} viene sostituito con il nome del visitatore.")
+    confirmation_en = models.TextField(blank=True, default=DEFAULT_CONFIRMATION["en"], verbose_name="Testo della conferma (EN)")
+    confirmation_fr = models.TextField(blank=True, default=DEFAULT_CONFIRMATION["fr"], verbose_name="Testo della conferma (FR)")
+
+    panels = [
+        MultiFieldPanel([
+            FieldPanel("emails_contact"),
+            FieldPanel("emails_quote"),
+            FieldPanel("emails_candidate"),
+            FieldPanel("emails_partner"),
+            FieldPanel("attach_files"),
+        ], heading="Chi riceve le richieste"),
+        MultiFieldPanel([
+            FieldPanel("send_confirmation"),
+            FieldPanel("confirmation_it"),
+            FieldPanel("confirmation_en"),
+            FieldPanel("confirmation_fr"),
+        ], heading="Conferma al visitatore"),
+    ]
+
+    class Meta:
+        verbose_name = "Notifiche moduli"
