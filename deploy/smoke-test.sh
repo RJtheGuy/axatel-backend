@@ -145,6 +145,12 @@ else warn "chatbot model not on disk: downloaded at the first question  → mana
 c=$(curl -s -o /dev/null -m 90 -w "%{http_code}" -H "Host: $HOST" -H "X-Smoke-Test: 1" -H "Content-Type: application/json" \
     -X POST -d '{"message":"Dove siete?"}' "$BACKEND/api/v2/chatbot/ask/")
 [ "$c" = 200 ] && ok "chatbot answers (/api/v2/chatbot/ask/)" || bad "chatbot → $c"
+link=$(curl -s -m 60 -H "Host: $HOST" -H "Content-Type: application/json" -H "X-Smoke-Test: 1" \
+    -X POST -d '{"message":"Cosa monitorate?","locale":"it"}' "$BACKEND/api/v2/chatbot/ask/" | grep -o '"link": *"[^"]*"' | head -1)
+case "$link" in
+  *monitoraggio*) ok "chatbot knows the site (\"Cosa monitorate?\" → topics list with a link)" ;;
+  *) warn "chatbot did not answer \"Cosa monitorate?\" from the site  → chatbot_test --query \"cosa monitorate?\"" ;;
+esac
 # Self-hosted translation: models converted and the job runner installed
 if [ -f "$APP/models/mt/opus-mt-it-en/model.bin" ] && [ -f "$APP/models/mt/opus-mt-it-fr/model.bin" ]; then
   ok "translation models present (models/mt)"

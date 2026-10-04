@@ -47,7 +47,7 @@ Wagtail pages live in a tree. **The URL is the path through the tree.** The fron
 Root
 └── Home                                  (HomePage)              /
     ├── Monitoraggio                      (Indice Monitoraggio)   /monitoraggio/
-    │   ├── Traffico, Cantieri, Gallerie,  (Argomento monitoraggio) /monitoraggio/<slug>/
+    │   ├── Traffico, Cantieri, Tunnel,    (Argomento monitoraggio) /monitoraggio/<slug>/
     │   │   Frane, Fiumi, Aria, Alberi,
     │   │   Ponti, Edifici
     ├── Casi                              (Indice Casi di successo) /casi/
@@ -68,7 +68,7 @@ Root
     └── <any other page>                  (Pagina generica)       /<slug>/
 ```
 
-Required slugs: index pages `monitoraggio`, `casi`, `blog`, `servizi`, `soluzioni`, `prodotti`; monitoring topics `traffico cantieri gallerie frane fiumi aria alberi ponti edifici`. A page with the right title but the wrong **type** or **slug** will not show. The smoke test checks all of these.
+Required slugs: index pages `monitoraggio`, `casi`, `blog`, `servizi`, `soluzioni`, `prodotti`; monitoring topics `traffico cantieri tunnel frane fiumi aria alberi ponti edifici`. A page with the right title but the wrong **type** or **slug** will not show. A topic with no CMS page (e.g. Tunnel until someone creates it) is shown from the built-in list as "In arrivo"; to write it, add an *Argomento monitoraggio* under Monitoraggio with that slug (e.g. `tunnel`, category Viabilità), publish it and translate it. Topics that exist only in the CMS (e.g. Pareti rocciose) work the same way. The smoke test checks all of these.
 
 ---
 
@@ -146,9 +146,9 @@ These are one-per-site forms, not pages. The frontend reads them from `GET /api/
 | **Chatbot** | On/off, window title, welcome text, suggested questions | The answers themselves are in **Snippets → Voci chatbot**. |
 | **Tema** | Primary/background/accent/text colours, fonts, base size, type scale, corner radius, shadow, logo | Applied in the browser by `plugins/theme.client.ts` as CSS variables. Saving keeps one undo step. |
 
-**Chatbot (how it works and how to improve it):** it only ever sends answers written in **Snippets → Voci chatbot**, picking the entry whose questions are most similar to the visitor's (sentence embeddings, `paraphrase-multilingual-MiniLM-L12-v2`, so Italian, English and French questions all match the Italian entries). Below `CHATBOT_THRESHOLD` similarity, or when two entries are too close (`CHATBOT_MARGIN`), it sends the fallback entry. The widget is `app/components/chat/AiChat.vue` (posts to `/api/v2/chatbot/ask/` with the visitor's language).
+**Chatbot (how it works and how to improve it):** it only ever sends answers that already exist; it never writes text of its own. Two sources, matched together by meaning (sentence embeddings, `paraphrase-multilingual-MiniLM-L12-v2`, so Italian, English and French questions all match): (1) the entries written in **Snippets → Voci chatbot**, which always win when they fit; (2) **the published site**, read automatically: every monitoring topic, product, solution, success story, glossary term and "Domande frequenti" block becomes an answer (its short description / card text, the FAQ answer, the term's definition) with a **Scopri di più →** link to the page, plus two list answers, "Cosa monitorate?" (published topics by area) and "Quali prodotti avete?". Publishing or unpublishing a page updates the chatbot within a minute; English/French answers come from the translated pages. So the best way to teach it about a product or topic is a good title and a clear short description on its page. Below `CHATBOT_THRESHOLD` similarity, or when two answers are too close (`CHATBOT_MARGIN`), it sends the fallback entry. The widget is `app/components/chat/AiChat.vue` (posts to `/api/v2/chatbot/ask/` with the visitor's language; the answer comes back with an optional page link). `CHATBOT_SITE_KNOWLEDGE=false` in `.env` switches the site answers off.
 - Answers in English/French: fill **Risposta (EN)/(FR)** on each entry (`manage.py translate_settings` pre-fills them with the translation model; review them). Empty = Italian answer.
-- **Snippets → Domande al chatbot**: what visitors asked (text only, kept 180 days), the entry used and the similarity. Filter **Risposto: No** to see what is missing, then add those phrasings to an entry or create a new one.
+- **Snippets → Domande al chatbot**: what visitors asked (text only, kept 180 days), the entry or the page (*Risposta dal sito*) used and the similarity. Filter **Risposto: No** to see what is missing, then add those phrasings to an entry or create a new one.
 - Thresholds from data: `manage.py evaluate_chatbot` (leave-one-out on the entries' own questions, also in English/French when the translation models are installed) prints accuracy and, per threshold, answered/correct, with a recommended `CHATBOT_THRESHOLD`; put it in `.env` and restart. Compare models with `--models a,b`.
 - Model on disk: `manage.py setup_chatbot_model` (models/chatbot/, not in git). Each Gunicorn worker loads its own copy (~0.5 GB with the multilingual model). Visitors are limited to 20 questions a minute.
 

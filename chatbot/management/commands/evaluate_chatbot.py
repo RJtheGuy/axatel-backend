@@ -11,6 +11,12 @@ and French, as visitors from those pages do.
     python manage.py evaluate_chatbot
     python manage.py evaluate_chatbot --models all-MiniLM-L6-v2,paraphrase-multilingual-MiniLM-L12-v2
 
+Then the answers built from the site (topics, products, solutions, cases,
+glossary, FAQ) are checked with the live engine: each is asked in words
+that are NOT in its index ("mi parli di …", "… informazioni", the English
+and French title) and must come back as itself, not as another answer or
+the fallback.
+
 For each model: top-1 accuracy, then for a grid of thresholds the share of
 questions answered (coverage) and the share answered correctly (precision),
 and the threshold with the most coverage at ≥ 90% precision. Put the chosen
@@ -105,3 +111,47 @@ class Command(BaseCommand):
                 if best:
                     self.stdout.write(self.style.SUCCESS(
                         f"       → CHATBOT_THRESHOLD={best[0]:.2f}: answers {best[1]:.0%} with {best[2]:.0%} correct"))
+
+        self._site_check()
+
+    def _site_check(self):
+        """Ask each site answer in new words; it must come back as itself."""
+        from chatbot.engine import engine
+
+        answers = engine.site_answers()
+        if not answers:
+            self.stdout.write("\nSite answers: none (no published pages, or CHATBOT_SITE_KNOWLEDGE=false).")
+            return
+        self.stdout.write(self.style.MIGRATE_HEADING(
+            f"\nSite answers ({len(answers)}) with the live engine, threshold {engine.THRESHOLD:.2f}"))
+        totals = {}
+        misses = []
+        for answer in answers:
+            name = answer.label.split(": ", 1)[-1]
+            if answer.kind == "list":
+                probes = [("it", "potete dirmi cosa monitorate" if answer.key == "list:topics" else "che prodotti offrite")]
+            elif answer.kind == "faq":
+                probes = [("it", answer.questions[0])]
+            else:
+                probes = [("it", f"mi parli di {name}"), ("it", f"{name} informazioni")]
+                probes += [(lang, title) for lang, title in answer.titles.items()
+                           if lang != "it" and title and title != answer.titles.get("it")]
+            for language, probe in probes:
+                _, meta = engine.answer_with_scores(probe)
+                own = meta.get("answer_key") == answer.key
+                # A hand-written entry answering instead is by design (they win).
+                by_entry = not meta["used_fallback"] and meta.get("entry_id") and not meta.get("source")
+                kind = totals.setdefault(answer.kind, [0, 0, 0])
+                kind[0] += own
+                kind[1] += bool(by_entry)
+                kind[2] += 1
+                if not own and not by_entry:
+                    got = meta.get("source") or "fallback"
+                    misses.append(f"  · [{language}] \"{probe}\" → {got} (expected {answer.label}, score {meta['best_score']})")
+        for kind, (good, by_entry, total) in sorted(totals.items()):
+            extra = f", {by_entry} by a hand-written entry" if by_entry else ""
+            self.stdout.write(f"  {kind:<9} {good}/{total} found itself ({good / total:.0%}){extra}")
+        if misses:
+            self.stdout.write("  Not found (add these phrasings to a Voce chatbot, or improve the page's title/description):")
+            for line in misses[:15]:
+                self.stdout.write(line)

@@ -76,8 +76,9 @@ class Command(BaseCommand):
         if used_fallback or verbose:
             tag = self.style.WARNING("FALLBACK") if used_fallback else self.style.SUCCESS("OK")
             reason = f" ({meta['reason']})" if used_fallback else ""
+            source = f' from {meta["source"]}' if meta.get("source") else ""
             self.stdout.write(
                 f'[{tag}] "{query}" -> best={meta["best_score"]} '
-                f'margin={meta["margin"]} match="{meta["matched_question"]}"{reason}'
+                f'margin={meta["margin"]} match="{meta["matched_question"]}"{source}{reason}'
             )
         return used_fallback

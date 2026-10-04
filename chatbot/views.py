@@ -30,7 +30,8 @@ def _log(question, language, meta):
     try:
         ChatbotQuestion.objects.create(
             question=question[:300], language=language,
-            entry_id=meta.get("entry_id"), score=meta.get("best_score", 0) or 0,
+            entry_id=meta.get("entry_id"), source=(meta.get("source") or "")[:200],
+            score=meta.get("best_score", 0) or 0,
             margin=meta.get("margin", 0) or 0, answered=not meta.get("used_fallback", True),
         )
         if random.random() < 0.02:  # now and then, forget old questions
@@ -68,11 +69,16 @@ def chat(request):
             return JsonResponse({"error": "Troppe domande in poco tempo: riprova tra un minuto."}, status=429)
 
         answer, meta = engine.answer_with_scores(query)
-        entry = ChatbotEntry.objects.filter(pk=meta.get("entry_id")).first() if meta.get("entry_id") else None
-        response = entry.answer_in(language) if entry else (answer or engine._fallback or NOT_READY[language])
+        chosen = engine.get_answer(meta.get("answer_key")) if meta.get("answer_key") else None
+        if chosen is not None:
+            response = chosen.answer_in(language)
+        else:
+            entry = ChatbotEntry.objects.filter(pk=meta.get("entry_id")).first() if meta.get("entry_id") else None
+            response = entry.answer_in(language) if entry else (answer or engine._fallback or NOT_READY[language])
         if not request.headers.get("X-Smoke-Test"):
             _log(query, language, meta)
-        return JsonResponse({"response": response})
+        # link: the page the answer comes from (Italian path; the widget adds /en or /fr).
+        return JsonResponse({"response": response, "link": meta.get("link") or ""})
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
     except Exception:

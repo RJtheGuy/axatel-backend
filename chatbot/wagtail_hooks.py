@@ -11,7 +11,7 @@ class ChatbotQuestionViewSet(SnippetViewSet):
     model = ChatbotQuestion
     icon = "help"
     menu_label = "Domande al chatbot"
-    list_display = ["question", "language", "answered", "entry", "score", "created_at"]
+    list_display = ["question", "language", "answered", "entry", "source", "score", "created_at"]
     list_filter = ["answered", "language"]
     search_fields = ["question"]
     add_to_admin_menu = False

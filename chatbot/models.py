@@ -100,6 +100,8 @@ class ChatbotQuestion(models.Model):
     language = models.CharField(max_length=5, default="it", verbose_name="Lingua")
     entry = models.ForeignKey(ChatbotEntry, null=True, blank=True, on_delete=models.SET_NULL,
                               related_name="+", verbose_name="Risposta usata")
+    source = models.CharField(max_length=200, blank=True, verbose_name="Risposta dal sito",
+                              help_text="Pagina da cui è presa la risposta, quando non è una Voce chatbot.")
     score = models.FloatField(default=0, verbose_name="Somiglianza")
     margin = models.FloatField(default=0, verbose_name="Distacco dalla seconda")
     answered = models.BooleanField(default=False, verbose_name="Risposto",
