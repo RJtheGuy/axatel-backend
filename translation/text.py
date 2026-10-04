@@ -64,6 +64,17 @@ def split_segments(text: str) -> tuple[list[str], list[str]]:
     return parts, seps[: max(0, len(parts) - 1)]
 
 
+def continue_case(source: str, output: str, terms: list[str]) -> str:
+    """A piece after a dash that starts lower-case in Italian goes on the
+    sentence: "— un nostro tecnico" → "— one of our technicians", not "— One"."""
+    if not source[:1].islower() or not output[:1].isupper():
+        return output
+    first = output.split(" ", 1)[0]
+    if first.isupper() or any(output.startswith(t) for t in terms if t[:1].isupper()):
+        return output  # an acronym or a name
+    return output[:1].lower() + output[1:]
+
+
 def join_segments(parts: list[str], seps: list[str]) -> str:
     out = ""
     for i, part in enumerate(parts):

@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny
 
 from core.contact_views import client_ip
@@ -41,6 +41,10 @@ def _log(question, language, meta):
 
 @csrf_exempt
 @api_view(['POST'])
+# Public and anonymous. Without this, Django REST framework treats a browser
+# that is logged in to the CMS on the same address as a session user and
+# refuses the question ("CSRF Failed"): the chat then failed for editors only.
+@authentication_classes([])
 @permission_classes([AllowAny])
 def chat(request):
     if request.method != "POST":

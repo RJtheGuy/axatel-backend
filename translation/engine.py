@@ -45,6 +45,7 @@ DEFAULT_GLOSSARY = {
     "gallerie": ("tunnels", "tunnels"),
     "galleria": ("tunnel", "tunnel"),
     "conto terzi": ("for third parties", "pour le compte de tiers"),
+    "monitoraggio e supervisione": ("monitoring and supervision", "surveillance et supervision"),
 }
 
 
@@ -134,7 +135,7 @@ def build_rules(terms: list[str], glossary_entries: dict[str, str]) -> list[T.Ru
 
 
 # Bump when the way texts are prepared changes, so old memory rows are redone.
-RULES_VERSION = 2
+RULES_VERSION = 3
 
 
 def _hash(text: str) -> str:
@@ -222,7 +223,11 @@ class Translator:
         position = 0
         rows = []
         for text, (parts, seps) in zip(todo, pieces):
-            translated = T.join_segments(plain[position: position + len(parts)], seps)
+            outputs = plain[position: position + len(parts)]
+            outputs = [out if k == 0 or seps[k - 1].strip() not in ("—", "–")
+                       else T.continue_case(parts[k], out, self.terms)
+                       for k, out in enumerate(outputs)]
+            translated = T.join_segments(outputs, seps)
             position += len(parts)
             self.cache[text] = translated
             if self.memory:

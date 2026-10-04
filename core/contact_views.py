@@ -3,6 +3,7 @@ from django.core.cache import cache
 from django.core.mail import mail_admins
 from django.core.exceptions import ValidationError
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
  
@@ -31,6 +32,11 @@ QUOTE_DETAIL_FIELDS = {
 
 
 class ContactSubmitView(APIView):
+    # Public and anonymous: a browser logged in to the CMS on the same
+    # address must not be asked for a CSRF token (forms failed for editors).
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
     def post(self, request):
         data = request.data
         if data.get("website"):
