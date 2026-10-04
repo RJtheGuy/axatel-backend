@@ -35,20 +35,27 @@ class TranslationMemory(models.Model):
 
 @register_snippet
 class ProtectedTerm(models.Model):
-    """Words the model must never translate (product and brand names)."""
+    """Glossary for the translation model. Without a translation: a name kept
+    exactly as written (product and brand names). With a translation: an
+    Italian term always translated that way ("concessionarie stradali" →
+    "road operators"). The usual terms are already built in."""
 
-    term = models.CharField(max_length=80, unique=True, verbose_name="Termine",
-                            help_text="Esattamente come è scritto, es. 'Angel River', 'LoRaWAN'.")
+    term = models.CharField(max_length=80, unique=True, verbose_name="Termine italiano",
+                            help_text="Es. 'Angel River' (nome da non tradurre) o 'concessionarie stradali'.")
+    translation_en = models.CharField(max_length=120, blank=True, verbose_name="Traduzione inglese",
+                                      help_text="Vuoto (anche il francese) = il termine resta com'è.")
+    translation_fr = models.CharField(max_length=120, blank=True, verbose_name="Traduzione francese")
 
-    panels = [FieldPanel("term")]
+    panels = [FieldPanel("term"), FieldPanel("translation_en"), FieldPanel("translation_fr")]
 
     class Meta:
-        verbose_name = "Termine da non tradurre"
-        verbose_name_plural = "Termini da non tradurre"
+        verbose_name = "Glossario di traduzione"
+        verbose_name_plural = "Glossario di traduzione"
         ordering = ["term"]
 
     def __str__(self):
-        return self.term
+        fixed = " / ".join(t for t in (self.translation_en, self.translation_fr) if t)
+        return f"{self.term} → {fixed}" if fixed else self.term
 
 
 class TranslationJob(models.Model):

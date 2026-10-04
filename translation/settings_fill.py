@@ -1,22 +1,38 @@
 """
 Fill the English/French fields of the site settings that are still empty:
 menu labels (Impostazioni → Navigazione), the header button, the team's
-roles, descriptions and departments, and the chatbot answers. Fields someone already filled in are
-never changed.
+roles, descriptions and departments, and the chatbot answers.
+
+A field is written when it is empty, or when it still holds exactly an
+earlier machine translation (so better rules or a new glossary entry
+improve it). A field someone typed or corrected in the CMS is never changed.
 """
 import json
 
 from wagtail.models import Site
 
 
+def _machine_made(source, language, current):
+    """True when `current` is the model's earlier translation of `source`."""
+    from .engine import _hash
+    from .models import TranslationMemory
+
+    row = TranslationMemory.objects.filter(source_hash=_hash(source), language=language).first()
+    return bool(row and not row.edited and row.target.strip() == current)
+
+
 def _fill(obj, base, language, translator, notes, where):
-    """obj[base_language] = translation of obj[base] when empty (dict or model)."""
+    """obj[base_language] = translation of obj[base] (dict or model), when
+    empty or still an earlier machine translation."""
     get = obj.get if isinstance(obj, dict) else (lambda k, d=None: getattr(obj, k, d))
     source = (get(base) or "").strip()
     key = f"{base}_{language}"
-    if not source or (get(key) or "").strip():
+    current = (get(key) or "").strip()
+    if not source or (current and not _machine_made(source, language, current)):
         return False
     value = translator.one(source)
+    if value.strip() == current:
+        return False
     if isinstance(obj, dict):
         obj[key] = value
     else:

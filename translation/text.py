@@ -39,6 +39,119 @@ def split_sentences(text: str) -> list[str]:
     return [part for part in _SENTENCE_END.split(text) if part.strip()]
 
 
+# Pieces translated one at a time: sentences, and the parts of a sentence
+# around a spaced dash ("Smart Road è ... — rilevamento di frane ..."). The
+# model drops or garbles a dash in the middle of a sentence, so each side is
+# translated on its own and the dash is put back.
+_SEGMENT_BREAK = re.compile(r"((?<=[.!?…])\s+(?=[A-ZÀ-ÖØ-Þ0-9«\"“(])|\s+[—–]\s+)")
+
+
+def split_segments(text: str) -> tuple[list[str], list[str]]:
+    """(parts, separators): text == parts[0] + seps[0] + parts[1] + ..."""
+    text = text.strip()
+    if not text:
+        return [], []
+    tokens = _SEGMENT_BREAK.split(text)
+    parts, seps = [], []
+    for i, token in enumerate(tokens):
+        if i % 2 == 0:
+            if token.strip():
+                parts.append(token.strip())
+            elif seps:  # empty part: drop the separator before it
+                seps.pop()
+        elif parts:
+            seps.append(f" {token.strip()} " if token.strip() else " ")
+    return parts, seps[: max(0, len(parts) - 1)]
+
+
+def join_segments(parts: list[str], seps: list[str]) -> str:
+    out = ""
+    for i, part in enumerate(parts):
+        out += part
+        if i < len(seps):
+            out += seps[i]
+    return out.strip()
+
+
+_END_PUNCT = (".", "!", "?", "…", ":", ";")
+
+
+def tidy(source: str, output: str) -> str:
+    """Small clean-ups: no full stop the source did not have ("Parla con un
+    esperto" → "Talk to an expert", not "...expert.")."""
+    output = output.strip()
+    if output.endswith(".") and not output.endswith("..") and not source.rstrip().endswith(_END_PUNCT):
+        output = output[:-1].rstrip()
+    return output
+
+
+# Things copied exactly as written, whatever the model does: e-mail
+# addresses, links, phone numbers and {placeholders}.
+FIXED_PATTERNS = [
+    re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+"),
+    re.compile(r"(?:https?://|www\.)[^\s<>\"']+[^\s<>\"'.,;:!?)]"),
+    re.compile(r"\+?\d[\d ./-]{6,}\d"),
+    re.compile(r"\{\w+\}"),
+]
+
+
+class Rule:
+    """One thing the translation must contain: `pattern` found in the Italian
+    must come out as `target` (None = exactly as written)."""
+
+    def __init__(self, pattern, target=None, ignore_case=False):
+        self.pattern = pattern
+        self.target = target
+        self.ignore_case = ignore_case
+
+    def wanted(self, match_text: str) -> str:
+        if self.target is None:
+            return match_text
+        if match_text[:1].isupper() and self.target[:1].islower():
+            return self.target[:1].upper() + self.target[1:]
+        return self.target
+
+    def present(self, wanted: str, output: str) -> bool:
+        return (wanted.lower() in output.lower()) if self.ignore_case else (wanted in output)
+
+
+def term_rule(term: str, target: str | None = None) -> Rule:
+    if target:
+        pattern = re.compile(rf"(?<![\w-]){re.escape(term)}(?![\w-])", re.I)
+        return Rule(pattern, target, ignore_case=True)
+    return Rule(re.compile(rf"(?<![\w-]){re.escape(term)}(?![\w-])"))
+
+
+def expected(text: str, rules: list[Rule]) -> list[tuple[Rule, str]]:
+    found, taken = [], []
+    for rule in rules:
+        for match in rule.pattern.finditer(text):
+            span = match.span()
+            if any(span[0] < end and start < span[1] for start, end in taken):
+                continue  # inside a longer match already counted
+            taken.append(span)
+            found.append((rule, rule.wanted(match.group(0))))
+    return found
+
+
+def missing(text: str, output: str, rules: list[Rule]) -> bool:
+    return any(not rule.present(wanted, output) for rule, wanted in expected(text, rules))
+
+
+def protect_rules(text: str, rules: list[Rule]) -> tuple[str, dict[str, str]]:
+    """Like protect(), for rules: each match becomes a placeholder that is
+    later replaced by what the rule wants (the same text, or the glossary
+    translation)."""
+    mapping: dict[str, str] = {}
+    for rule in rules:
+        def swap(match, rule=rule):
+            key = _PLACEHOLDER.format(len(mapping))
+            mapping[key] = rule.wanted(match.group(0))
+            return key
+        text = rule.pattern.sub(swap, text)
+    return text, mapping
+
+
 def protect(text: str, terms: list[str]) -> tuple[str, dict[str, str]]:
     """Replace protected terms with placeholders the model copies unchanged."""
     mapping: dict[str, str] = {}
