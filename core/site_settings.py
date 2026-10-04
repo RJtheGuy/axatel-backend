@@ -522,3 +522,23 @@ class FormNotificationSettings(BaseSiteSetting):
 
     class Meta:
         verbose_name = "Notifiche moduli"
+
+
+@register_setting(icon="search")
+class SearchEngineSettings(BaseSiteSetting):
+    """Impostazioni → Motori di ricerca: the go-live switch for Google.
+    While it is off, every page and robots.txt tell search engines to stay
+    away (the site must not compete with the live axatel.it). The frontend
+    never allows indexing on a bare IP address, whatever this says."""
+
+    allow_indexing = models.BooleanField(
+        default=False, verbose_name="Consenti ai motori di ricerca di indicizzare il sito",
+        help_text="Accendilo solo quando il sito è online sul dominio definitivo (axatel.it) e i vecchi "
+                  "indirizzi sono reindirizzati. Spento = 'noindex' su ogni pagina e robots.txt che blocca tutto. "
+                  "Sull'indirizzo IP del server il sito non è mai indicizzato.",
+    )
+
+    panels = [FieldPanel("allow_indexing")]
+
+    class Meta:
+        verbose_name = "Motori di ricerca"

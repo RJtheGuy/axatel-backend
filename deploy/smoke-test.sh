@@ -201,13 +201,31 @@ c=$(curl -s -o /dev/null -m 20 -w "%{http_code}" -H "Host: $HOST" -H "X-Real-IP:
     -F message=test "$BACKEND/api/v2/contact/")
 [ "$c" = 400 ] && ok "forms refuse a request without privacy consent (400)" || warn "contact API without consent → $c (expected 400)"
 
-# ── 6. Not indexed by search engines (protects the live axatel.it) ────────
+todo=$(sudo -u www-data "$PY" manage.py check_content --summary 2>/dev/null | grep -oE "^[0-9]+ item" | grep -oE "^[0-9]+")
+[ "${todo:-0}" = 0 ] && ok "content check: nothing left to do" \
+  || warn "content check: ${todo} item(s) to look at  → CMS Report → Controllo contenuti (or manage.py check_content)"
+
+# ── 6. Search engines ────────────────────────────────────────────────────
+# The frontend sends "noindex" until CMS → Impostazioni → Motori di ricerca
+# is switched on, and always on the bare IP address.
 section "6. Search engines"
-if curl -s -I -m 10 "$SITE/" | grep -qi "x-robots-tag:.*noindex"; then
-  ok "noindex header present - Google won't index the IP site"
+if curl -s -I -m 10 -H "Host: 80.211.135.192" "$SITE/" | grep -qi "x-robots-tag:.*noindex"; then
+  ok "IP address not indexable (noindex header)"
 else
-  warn "no X-Robots-Tag noindex header - the IP site could get indexed next to axatel.it"
+  bad "no noindex header on the IP address - it could get indexed next to axatel.it"
 fi
+curl -s -m 10 -H "Host: 80.211.135.192" "$SITE/robots.txt" | grep -q "^Disallow: /$" \
+  && ok "robots.txt on the IP address blocks crawlers" || warn "robots.txt on the IP address does not block crawlers"
+if curl -s -m 10 -H "Host: $HOST" "$BACKEND/api/v2/indexing/" | grep -q '"allowIndexing": *true'; then
+  ok "indexing switched ON in the CMS (the domain is open to search engines)"
+  if grep -rqsi "x-robots-tag" /etc/nginx/; then
+    bad "nginx still adds its own X-Robots-Tag  → remove that add_header line in /etc/nginx/, then nginx -t && systemctl reload nginx"
+  fi
+else
+  ok "indexing switched off (switch on at go-live: CMS → Impostazioni → Motori di ricerca)"
+fi
+n=$(curl -s -m 10 -H "Host: $HOST" "$BACKEND/api/v2/redirects/" | grep -o '"from"' | wc -l)
+[ "$n" -gt 20 ] && ok "$n redirects (old addresses)" || warn "only $n redirect(s): old WordPress addresses not imported yet  → manage.py import_old_redirects --propose"
 
 # ── 7. Errors logged in the last hour ────────────────────────────────────
 section "7. Recent errors (last hour)"

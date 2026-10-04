@@ -233,3 +233,17 @@ class BrandingView(APIView):
             "particle_logo": _file_path(branding.particle_logo) or _file_path(branding.logo),
             "header_wing": _file_path(branding.header_wing),
         })
+
+
+class IndexingView(APIView):
+    """Impostazioni → Motori di ricerca, for the frontend's server
+    (server/middleware/indexing.ts): {"allowIndexing": bool}."""
+
+    authentication_classes = []
+
+    def get(self, request):
+        from .site_settings import SearchEngineSettings
+
+        site = Site.find_for_request(request) or Site.objects.filter(is_default_site=True).first()
+        allow = bool(site and SearchEngineSettings.for_site(site).allow_indexing)
+        return Response({"allowIndexing": allow})

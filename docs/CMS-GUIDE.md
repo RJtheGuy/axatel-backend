@@ -142,7 +142,8 @@ These are one-per-site forms, not pages. The frontend reads them from `GET /api/
 | **Footer** | Contact rows (phone, email, address), **Seguici (social)** — LinkedIn, Facebook… each with a Visibile switch — P.IVA, Codice Fiscale, **Pagine legali** (Privacy policy, Cookie policy) | Used on every page. An old "Seguici" contact row is replaced by the social list. The legal pages appear in the footer, and the privacy one is linked from the consent box of every form, only once they are **published**. |
 | **Notifiche moduli** | Who receives the e-mail for each kind of request (contatto, preventivo, candidatura, collaborazione; several addresses separated by commas; empty = the contatto addresses), *Allega i documenti* (CV attached to the e-mail), *Conferma a chi scrive* and its text in IT/EN/FR (`{nome}` = the visitor's first name) | Sending needs the `EMAIL_*` lines in `.env` (§8). |
 | **Logo e immagini del sito** | Logo (menu, footer, particle animation), optional separate particle logo, **Ala nelle intestazioni** (the wing next to page titles and in the home quote) | Empty = built-in files. SVG or transparent PNG. Read from `GET /api/v2/branding/`. |
-| **Reindirizzamenti** (Wagtail) | Old address → new page or address | Served by the frontend (`server/middleware/cms-redirects.ts`, list from `GET /api/v2/redirects/`, refreshed every minute), in every language. Wagtail adds one by itself when a published page's slug changes. Use it for old WordPress addresses at go-live. |
+| **Reindirizzamenti** (Wagtail) | Old address → new page or address | Served by the frontend (`server/middleware/cms-redirects.ts`, list from `GET /api/v2/redirects/`, refreshed every minute), in every language. Wagtail adds one by itself when a published page's slug changes. Old WordPress addresses: `manage.py import_old_redirects` (§7a). Old `/wp-content/…` file links are redirected too (to Documenti). |
+| **Motori di ricerca** | *Consenti ai motori di ricerca di indicizzare il sito* | **The go-live switch for Google.** Off (default) = every page sends `X-Robots-Tag: noindex` and `robots.txt` blocks everything (`server/middleware/indexing.ts`, `server/routes/robots.txt.ts`, read from `GET /api/v2/indexing/` every minute). On a bare IP address or localhost it is never indexable, whatever the switch says. |
 | **Team** | The people on `/azienda/team`: name, photo, role and description (with optional English/French versions), **Visibile** switch, order (drag to reorder) | Read from `GET /api/v2/team/`. **While the list is empty the page shows the built-in example team** from `app/data/team.ts`. |
 | **Chatbot** | On/off, window title, welcome text, suggested questions | The answers themselves are in **Snippets → Voci chatbot**. |
 | **Tema** | Primary/background/accent/text colours, fonts, base size, type scale, corner radius, shadow, logo | Applied in the browser by `plugins/theme.client.ts` as CSS variables. Saving keeps one undo step. |
@@ -246,11 +247,24 @@ Each command only adds what is missing (matched by slug, or by Italian label for
 
 **Change colours or fonts:** Impostazioni → Tema → save. Visitors see it on their next page load.
 
-**Rename a page's URL:** change the slug and publish, then add a 301 in Settings → Redirects from the old path to the new one.
+**Rename a page's URL:** change the slug and publish. Wagtail adds the redirect from the old address by itself (check it in Impostazioni → Reindirizzamenti).
+
+**What is left to do (Report → Controllo contenuti):** one page in the CMS that lists, with a link to fix each one: test values and parts still in [square brackets], "Test:" titles, example names in the team, an invalid VAT number; links to the old www.axatel.it; menu entries pointing to unpublished pages; published pages with no content ("In arrivo"); cards without text or picture; drafts waiting; pages without their English/French version online; menu labels, team and chatbot answers without translation; missing form recipients or legal pages; pictures whose title is a file name; pages without a Google description. Read-only, recalculated each time it is opened. Same list on the server: `manage.py check_content [--summary] [--only placeholders,translations]` (code: `core/content_audit.py`). The smoke test shows the count.
 
 **SEO per page:** Promote tab → SEO title, search description, OG image. The sitemap at `/sitemap.xml` updates automatically.
 
 **Preview:** the "Preview" button is configured to open `<FRONTEND_URL>/preview`, but the frontend has **no `/preview` page yet**, so it shows a 404. Until that exists, save a draft and check it after publishing.
+
+---
+
+## 7a. Go-live, in order
+
+1. **Form e-mails:** `EMAIL_*` in `.env` (§8), `manage.py send_test_email --to you@…`, recipients in Impostazioni → Notifiche moduli, send one request from `/contatti`.
+2. **Privacy:** `manage.py create_legal_pages`, complete the [DA COMPLETARE] parts, adviser check, publish, translate.
+3. **Content:** Report → Controllo contenuti until the first groups are empty (test values, old links, menu, empty pages) and the translations you need are published. Write the "In arrivo" topics or switch their menu entry off.
+4. **Old addresses:** `manage.py import_old_redirects --propose` writes `/tmp/axatel-redirects.csv` with a proposed new address for each old one (built-in list from the old sitemaps, `core/data/old_site_urls.txt`; add more with `--urls file.txt`, e.g. the Google Search Console export, or `--sitemap URL`). Open it, check the *media* and *nessuna* rows, correct the *to* column, then `--apply /tmp/axatel-redirects.csv --dry-run` and without `--dry-run`. They appear in Impostazioni → Reindirizzamenti (editable, or import a CSV there too). Existing redirects are never overwritten without `--replace`.
+5. **Domain and HTTPS** (last): DNS of axatel.it/www to this server, nginx `server_name`, certificate (`certbot --nginx -d axatel.it -d www.axatel.it`), then in `.env`: `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `CORS_ALLOWED_ORIGINS`, `SITE_URL` (also the base of CMS links in e-mails), `FRONTEND_URL`, `SECURE_SSL_REDIRECT=True`; frontend service: `NUXT_PUBLIC_I18N_BASE_URL=https://axatel.it` (sitemap, hreflang, robots) and `NUXT_PUBLIC_API_BASE`. Settings → Sites: hostname `axatel.it`. Restart both services, run the smoke test.
+6. **Open to Google:** Impostazioni → Motori di ricerca → switch on. If an `add_header X-Robots-Tag` line was added by hand in `/etc/nginx/`, remove it (the smoke test says so). Submit `https://axatel.it/sitemap.xml` in Google Search Console and watch its "Pages" report for old addresses still giving 404: add them with `import_old_redirects --propose --urls export.csv`.
 
 ---
 

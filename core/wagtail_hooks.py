@@ -30,3 +30,32 @@ def register_highlight_feature(features):
         },
     })
 
+
+
+# ── Rapporti → Controllo contenuti (core/content_audit.py) ───────────────
+from django.shortcuts import render  # noqa: E402
+from django.urls import path, reverse  # noqa: E402
+from wagtail.admin.menu import MenuItem  # noqa: E402
+
+
+def content_audit_view(request):
+    from .content_audit import GROUPS, run_audit, summary
+
+    findings = run_audit()
+    sections = [(key, label, help_text, [f for f in findings if f.group == key])
+                for key, label, help_text in GROUPS]
+    return render(request, "core/content_audit.html", {
+        "groups": summary(findings),
+        "sections": [s for s in sections if s[3]],
+        "total": len(findings),
+    })
+
+
+@hooks.register("register_admin_urls")
+def content_audit_urls():
+    return [path("controllo-contenuti/", content_audit_view, name="content_audit")]
+
+
+@hooks.register("register_reports_menu_item")
+def content_audit_menu():
+    return MenuItem("Controllo contenuti", reverse("content_audit"), icon_name="tasks", order=50)

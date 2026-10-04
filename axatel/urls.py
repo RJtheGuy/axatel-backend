@@ -10,7 +10,7 @@ from wagtail.documents import urls as wagtaildocs_urls
 
 from core.api import api_router
 from core.theme_views import ActiveThemeView, RestoreThemeView
-from core.settings_views import BrandingView, RedirectsView, SiteSettingsView, TeamView
+from core.settings_views import BrandingView, IndexingView, RedirectsView, SiteSettingsView, TeamView
 from core.contact_views import ContactSubmitView
 from seo.views import robots_txt
 
@@ -31,6 +31,7 @@ urlpatterns = [
     path("api/v2/site-settings/", SiteSettingsView.as_view(), name="site_settings"),
     path("api/v2/team/", TeamView.as_view(), name="team"),
     path("api/v2/redirects/", RedirectsView.as_view(), name="redirects"),
+    path("api/v2/indexing/", IndexingView.as_view(), name="indexing"),
     path("api/v2/branding/", BrandingView.as_view(), name="branding"),
     path("api/v2/contact/", ContactSubmitView.as_view(), name="contact_submit"),
     path("api/v2/", api_router.urls),
