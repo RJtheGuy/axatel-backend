@@ -32,7 +32,7 @@ class Command(BaseCommand):
                 for language in [l for l in job.languages.split(",") if l]:
                     if language not in translators:
                         translators[language] = Translator(language)
-                    lines.append(translate_page(job.page, language, translators[language], user=job.requested_by))
+                    lines.append(translate_page(job.page, language, translators[language], user=job.requested_by, publish=job.publish))
                 job.status = "done"
             except Exception as error:  # noqa: BLE001 - recorded on the job for the editors
                 lines.append(f"error: {error}")

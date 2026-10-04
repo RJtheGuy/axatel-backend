@@ -7,6 +7,7 @@ for many pages at once.
     python manage.py translate_pages --page chi-siamo
     python manage.py translate_pages --type monitoring.MonitoringPage --languages en
     python manage.py translate_pages --all
+    python manage.py translate_pages --all --publish            # straight online, no review
 
 Each translation is saved as a DRAFT of the English/French page: review it
 in the CMS and press Pubblica. Pages whose translation has a draft waiting
@@ -29,8 +30,10 @@ class Command(BaseCommand):
         parser.add_argument("--all", action="store_true", help="Every published Italian page.")
         parser.add_argument("--languages", default="en,fr")
         parser.add_argument("--dry-run", action="store_true")
+        parser.add_argument("--publish", action="store_true",
+                            help="Publish the translations at once instead of leaving drafts to review.")
 
-    def handle(self, *args, page=(), type="", all=False, languages="en,fr", dry_run=False, **options):
+    def handle(self, *args, page=(), type="", all=False, languages="en,fr", dry_run=False, publish=False, **options):
         italian = Page.objects.filter(locale__language_code="it", depth__gt=1).live()
         if page:
             chosen = Page.objects.none()
@@ -55,7 +58,7 @@ class Command(BaseCommand):
         for language in [l.strip() for l in languages.split(",") if l.strip()]:
             translator = None if dry_run else Translator(language)
             for p in pages:
-                report = translate_page(p, language, translator, dry_run=dry_run)
+                report = translate_page(p, language, translator, dry_run=dry_run, publish=publish)
                 self.stdout.write(f"{p.url_path.replace('/home', '', 1) or '/'}  {report}")
             if translator:
                 s = translator.stats

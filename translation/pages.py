@@ -8,7 +8,9 @@ choices, numbers and addresses are copied as they are. The page keeps the
 same address (slug) as the Italian one.
 
 The result is saved as a DRAFT of the English/French page: someone checks
-it and presses Pubblica. Nothing is published automatically.
+it and presses Pubblica. With publish=True (translate_pages --publish, or
+Impostazioni → Traduzione automatica → Pubblica subito) it goes online
+straight away.
 """
 import json
 import re
@@ -160,7 +162,7 @@ class _Sink:
         object.__setattr__(self, name, value)
 
 
-def translate_page(page, language: str, translator, user=None, dry_run=False) -> str:
+def translate_page(page, language: str, translator, user=None, dry_run=False, publish=False) -> str:
     """Create or update the draft translation of an Italian page. Returns a
     one-line report."""
     from wagtail.actions.convert_alias import ConvertAliasPageAction
@@ -195,5 +197,8 @@ def translate_page(page, language: str, translator, user=None, dry_run=False) ->
 
     translate_content(source, target, translator.one)
     revision = target.save_revision(user=user, log_action=True)
+    if publish:
+        revision.publish(user=user)
+        return f"[{language}] '{revision.as_object().title}' — published"
     state = "new draft page" if created else "draft saved"
     return f"[{language}] '{revision.as_object().title}' — {state}, review it and press Pubblica"

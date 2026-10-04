@@ -31,7 +31,7 @@ class TranslationJobViewSet(SnippetViewSet):
     model = TranslationJob
     icon = "globe"
     menu_label = "Traduzioni richieste"
-    list_display = ["page", "languages", "status", "requested_by", "created_at", "finished_at"]
+    list_display = ["page", "languages", "publish", "status", "requested_by", "created_at", "finished_at"]
     list_filter = ["status"]
     add_to_admin_menu = False
 

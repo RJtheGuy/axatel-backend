@@ -18,11 +18,14 @@ def request_translation(request, page_id):
     if request.method == "POST":
         chosen = [code for code, _ in available if request.POST.get(code)]
         if chosen:
-            TranslationJob.objects.create(page=page, languages=",".join(chosen), requested_by=request.user)
+            publish = bool(request.POST.get("publish"))
+            TranslationJob.objects.create(page=page, languages=",".join(chosen), requested_by=request.user,
+                                          publish=publish)
             messages.success(
                 request,
                 f"Traduzione di '{page.title}' in coda ({', '.join(c.upper() for c in chosen)}). "
-                "Tra uno o due minuti trovi la bozza nella versione inglese/francese: rileggila e premi Pubblica.",
+                + ("Tra uno o due minuti è online." if publish else
+                   "Tra uno o due minuti trovi la bozza nella versione inglese/francese: rileggila e premi Pubblica."),
             )
         return redirect(reverse("wagtailadmin_pages:edit", args=[page.id]))
 

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
-from wagtail.admin.panels import FieldPanel
+from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from wagtail.snippets.models import register_snippet
 
 LANGUAGES = [("en", "Inglese"), ("fr", "Francese")]
@@ -72,6 +73,8 @@ class TranslationJob(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Richiesta il")
     finished_at = models.DateTimeField(null=True, blank=True, verbose_name="Finita il")
     message = models.TextField(blank=True, verbose_name="Esito")
+    publish = models.BooleanField(default=False, verbose_name="Pubblica subito",
+                                  help_text="Sì = la traduzione va online senza revisione.")
 
     class Meta:
         verbose_name = "Traduzione richiesta"
@@ -80,3 +83,25 @@ class TranslationJob(models.Model):
 
     def __str__(self):
         return f"{self.page.title} → {self.languages} ({self.get_status_display()})"
+
+
+@register_setting(icon="globe")
+class TranslationSettings(BaseSiteSetting):
+    """Impostazioni → Traduzione automatica: translate pages by themselves."""
+
+    auto_translate = models.BooleanField(
+        default=False, verbose_name="Traduci automaticamente",
+        help_text="Ogni volta che pubblichi una pagina italiana, la sua versione inglese e francese viene "
+                  "tradotta entro un paio di minuti.",
+    )
+    auto_publish = models.BooleanField(
+        default=False, verbose_name="Pubblica subito le traduzioni",
+        help_text="Sì = le traduzioni vanno online senza revisione. No = restano bozze da rileggere e pubblicare. "
+                  "Le correzioni fatte nella Memoria di traduzione vengono sempre riusate.",
+    )
+
+    panels = [MultiFieldPanel([FieldPanel("auto_translate"), FieldPanel("auto_publish")],
+                              heading="Traduzione automatica (EN, FR)")]
+
+    class Meta:
+        verbose_name = "Traduzione automatica"
