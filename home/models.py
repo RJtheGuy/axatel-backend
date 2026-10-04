@@ -38,6 +38,17 @@ class HomePage(SeoMixin, Page):
         APIField("hero_frasi"),
         APIField("hero_quote_text"),
         APIField("hero_cases_logo", serializer=ImageAPIField()),
+        APIField("top_kicker"),
+        APIField("top_title_before"),
+        APIField("top_title_accent"),
+        APIField("top_title_after"),
+        APIField("top_intro"),
+        APIField("top_cta_primary_label"),
+        APIField("top_cta_primary_url"),
+        APIField("top_cta_secondary_label"),
+        APIField("top_cta_secondary_url"),
+        APIField("top_show_status"),
+        APIField("is_alias"),
         APIField("body"),
         APIField("trust_clients"),
         APIField("trust_certifications"),
@@ -62,6 +73,27 @@ class HomePage(SeoMixin, Page):
     )
 
     
+    # First screen of the home ("Sistemi di monitoraggio real-time per la
+    # riduzione del rischio"). Empty = the built-in text in that language.
+    top_kicker = models.CharField(max_length=80, blank=True, verbose_name="Occhiello",
+                                  help_text="Riga piccola sopra il titolo. Vuoto = 'Tecnologia che protegge'.")
+    top_title_before = models.CharField(max_length=120, blank=True, verbose_name="Titolo — prima parte",
+                                        help_text="Vuoto = 'Sistemi di monitoraggio'.")
+    top_title_accent = models.CharField(max_length=60, blank=True, verbose_name="Titolo — parte colorata",
+                                        help_text="Mostrata in azzurro. Vuoto = 'real-time'.")
+    top_title_after = models.CharField(max_length=120, blank=True, verbose_name="Titolo — ultima parte",
+                                       help_text="Vuoto = 'per la riduzione del rischio'.")
+    top_intro = models.TextField(max_length=400, blank=True, verbose_name="Testo sotto il titolo")
+    top_cta_primary_label = models.CharField(max_length=40, blank=True, verbose_name="Pulsante rosso — testo",
+                                             help_text="Vuoto = 'Parla con un esperto'.")
+    top_cta_primary_url = models.CharField(max_length=200, blank=True, verbose_name="Pulsante rosso — link",
+                                           help_text="Vuoto = /contatti")
+    top_cta_secondary_label = models.CharField(max_length=40, blank=True, verbose_name="Secondo pulsante — testo",
+                                               help_text="Vuoto = 'Cosa monitoriamo'. Scrivi un trattino (-) per nasconderlo.")
+    top_cta_secondary_url = models.CharField(max_length=200, blank=True, verbose_name="Secondo pulsante — link",
+                                             help_text="Vuoto = /monitoraggio")
+    top_show_status = models.BooleanField(default=True, verbose_name="Mostra 'Monitoraggio attivo 24/7'")
+
     hero_frasi = StreamField(
         [("frase", blocks.CharBlock(
             max_length=200,
@@ -122,6 +154,18 @@ class HomePage(SeoMixin, Page):
 
     content_panels = Page.content_panels + [
         MultiFieldPanel([
+            FieldPanel("top_kicker"),
+            FieldPanel("top_title_before"),
+            FieldPanel("top_title_accent"),
+            FieldPanel("top_title_after"),
+            FieldPanel("top_intro"),
+            FieldPanel("top_cta_primary_label"),
+            FieldPanel("top_cta_primary_url"),
+            FieldPanel("top_cta_secondary_label"),
+            FieldPanel("top_cta_secondary_url"),
+            FieldPanel("top_show_status"),
+        ], heading="🏁 Prima schermata — titolo e pulsanti (vuoto = testo predefinito)"),
+        MultiFieldPanel([
             FieldPanel("hero_frasi"),
             FieldPanel("hero_quote_text"),
             FieldPanel("hero_cases_logo"),
@@ -140,6 +184,13 @@ class HomePage(SeoMixin, Page):
     ]
 
     promote_panels = SeoMixin.promote_panels
+
+    @property
+    def is_alias(self) -> bool:
+        """True for an English/French Home that only mirrors the Italian one
+        (a Wagtail alias, not a translation): the site then keeps its own
+        translated texts instead of showing the Italian ones."""
+        return self.alias_of_id is not None
 
     class Meta:
         verbose_name = "Home Page"

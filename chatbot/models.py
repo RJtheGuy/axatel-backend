@@ -18,6 +18,12 @@ class ChatbotEntry(models.Model):
         help_text="La risposta che il chatbot invia quando riconosce una "
                    "di queste domande. Solo testo semplice, senza formattazione.",
     )
+    answer_en = models.TextField(
+        blank=True, verbose_name="Risposta (EN)",
+        help_text="Per chi visita il sito in inglese. Vuoto = risposta in italiano. "
+                  "`manage.py translate_settings` la riempie con il modello di traduzione: rileggila.",
+    )
+    answer_fr = models.TextField(blank=True, verbose_name="Risposta (FR)")
     is_fallback = models.BooleanField(
         default=False,
         verbose_name="Risposta di riserva",
@@ -32,6 +38,8 @@ class ChatbotEntry(models.Model):
     panels = [
         FieldPanel("questions"),
         FieldPanel("answer"),
+        FieldPanel("answer_en"),
+        FieldPanel("answer_fr"),
         FieldPanel("is_fallback"),
     ]
 
@@ -74,3 +82,34 @@ class ChatbotEntry(models.Model):
     @property
     def questions_list(self) -> list[str]:
         return [q.strip() for q in self.questions.splitlines() if q.strip()]
+    def answer_in(self, language: str) -> str:
+        """The answer in the visitor's language, Italian when not translated."""
+        if language in ("en", "fr"):
+            translated = (getattr(self, f"answer_{language}", "") or "").strip()
+            if translated:
+                return translated
+        return self.answer
+
+
+class ChatbotQuestion(models.Model):
+    """What visitors asked and how the bot decided, to see what is missing
+    from the answers (Snippets → Domande al chatbot). Only the question text
+    is kept (no name, address or IP), for 180 days."""
+
+    question = models.CharField(max_length=300, verbose_name="Domanda")
+    language = models.CharField(max_length=5, default="it", verbose_name="Lingua")
+    entry = models.ForeignKey(ChatbotEntry, null=True, blank=True, on_delete=models.SET_NULL,
+                              related_name="+", verbose_name="Risposta usata")
+    score = models.FloatField(default=0, verbose_name="Somiglianza")
+    margin = models.FloatField(default=0, verbose_name="Distacco dalla seconda")
+    answered = models.BooleanField(default=False, verbose_name="Risposto",
+                                   help_text="No = è stata data la risposta di riserva.")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Quando")
+
+    class Meta:
+        verbose_name = "Domanda al chatbot"
+        verbose_name_plural = "Domande al chatbot"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.question[:80]

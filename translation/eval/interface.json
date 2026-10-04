@@ -1,0 +1,1556 @@
+[
+ {
+  "key": "lang.label",
+  "it": "Lingua",
+  "en": "Language",
+  "fr": "Langue"
+ },
+ {
+  "key": "lang.switchTo",
+  "it": "Passa a {language}",
+  "en": "Switch to {language}",
+  "fr": "Passer en {language}"
+ },
+ {
+  "key": "nav.home",
+  "it": "Axatel, torna alla home",
+  "en": "Axatel, back to the home page",
+  "fr": "Axatel, retour à l'accueil"
+ },
+ {
+  "key": "nav.openMenu",
+  "it": "Apri menu",
+  "en": "Open menu",
+  "fr": "Ouvrir le menu"
+ },
+ {
+  "key": "nav.closeMenu",
+  "it": "Chiudi menu",
+  "en": "Close menu",
+  "fr": "Fermer le menu"
+ },
+ {
+  "key": "nav.main",
+  "it": "Navigazione principale",
+  "en": "Main navigation",
+  "fr": "Navigation principale"
+ },
+ {
+  "key": "nav.cta",
+  "it": "Parla con un esperto",
+  "en": "Talk to an expert",
+  "fr": "Parler à un expert"
+ },
+ {
+  "key": "common.backHome",
+  "it": "Torna alla home",
+  "en": "Back to home",
+  "fr": "Retour à l'accueil"
+ },
+ {
+  "key": "common.discover",
+  "it": "Scopri",
+  "en": "Learn more",
+  "fr": "Découvrir"
+ },
+ {
+  "key": "common.notTranslated",
+  "it": "Questa pagina non è ancora disponibile in italiano.",
+  "en": "This page is not available in English yet.",
+  "fr": "Cette page n'est pas encore disponible en français."
+ },
+ {
+  "key": "fallback.notice",
+  "it": "Questa pagina non è ancora tradotta: la mostriamo in italiano.",
+  "en": "This page hasn't been translated yet, so it's shown in Italian.",
+  "fr": "Cette page n'est pas encore traduite : elle est affichée en italien."
+ },
+ {
+  "key": "hero.kicker",
+  "it": "Tecnologia che protegge",
+  "en": "Technology that protects",
+  "fr": "Une technologie qui protège"
+ },
+ {
+  "key": "hero.titleAccent",
+  "it": "real-time",
+  "en": "Real-time",
+  "fr": "en temps réel"
+ },
+ {
+  "key": "hero.titleAfter",
+  "it": "per la riduzione del rischio",
+  "en": "monitoring systems for risk reduction",
+  "fr": "pour la réduction des risques"
+ },
+ {
+  "key": "hero.intro",
+  "it": "Dati, automazione e controllo continuo per anticipare gli eventi e proteggere infrastrutture, territori e persone.",
+  "en": "Data, automation and continuous control to anticipate events and protect infrastructure, land and people.",
+  "fr": "Données, automatisation et contrôle continu pour anticiper les événements et protéger les infrastructures, les territoires et les personnes."
+ },
+ {
+  "key": "hero.ctaPrimary",
+  "it": "Parla con un esperto",
+  "en": "Talk to an expert",
+  "fr": "Parler à un expert"
+ },
+ {
+  "key": "hero.ctaSecondary",
+  "it": "Cosa monitoriamo",
+  "en": "What we monitor",
+  "fr": "Ce que nous surveillons"
+ },
+ {
+  "key": "hero.status",
+  "it": "Monitoraggio attivo",
+  "en": "Monitoring active",
+  "fr": "Surveillance active"
+ },
+ {
+  "key": "monitoring.title",
+  "it": "Monitoraggio",
+  "en": "Monitoring",
+  "fr": "Surveillance"
+ },
+ {
+  "key": "monitoring.kicker",
+  "it": "Cosa monitoriamo",
+  "en": "What we monitor",
+  "fr": "Ce que nous surveillons"
+ },
+ {
+  "key": "monitoring.lead",
+  "it": "Le soluzioni Axatel per osservare infrastrutture, territorio e ambiente.",
+  "en": "Axatel solutions for observing infrastructure, land and the environment.",
+  "fr": "Les solutions Axatel pour observer les infrastructures, le territoire et l'environnement."
+ },
+ {
+  "key": "monitoring.empty",
+  "it": "Nessun argomento pubblicato al momento.",
+  "en": "No topics published yet.",
+  "fr": "Aucun sujet publié pour le moment."
+ },
+ {
+  "key": "monitoring.areas",
+  "it": "{n} ambito | {n} ambiti",
+  "en": "{n} area | {n} areas",
+  "fr": "{n} domaine | {n} domaines"
+ },
+ {
+  "key": "monitoring.back",
+  "it": "Torna a Cosa monitoriamo",
+  "en": "Back to What we monitor",
+  "fr": "Retour à Ce que nous surveillons"
+ },
+ {
+  "key": "monitoring.groups.ambiente",
+  "it": "Ambiente",
+  "en": "Environment",
+  "fr": "Environnement"
+ },
+ {
+  "key": "monitoring.groups.viabilita",
+  "it": "Viabilità",
+  "en": "Roads",
+  "fr": "Routes"
+ },
+ {
+  "key": "monitoring.groups.strutture",
+  "it": "Strutture",
+  "en": "Structures",
+  "fr": "Ouvrages"
+ },
+ {
+  "key": "monitoring.groups.altro",
+  "it": "Altri ambiti",
+  "en": "Other areas",
+  "fr": "Autres domaines"
+ },
+ {
+  "key": "monitoring.titlePrefix",
+  "it": "Monitoraggio",
+  "en": "Monitoring",
+  "fr": "Surveillance"
+ },
+ {
+  "key": "footer.about",
+  "it": "Informazioni su Axatel",
+  "en": "About Axatel",
+  "fr": "À propos d'Axatel"
+ },
+ {
+  "key": "footer.tagline",
+  "it": "Sistemi di monitoraggio, automazione e supervisione per infrastrutture, territorio e ambiente.",
+  "en": "Monitoring, automation and supervision systems for infrastructure, land and the environment.",
+  "fr": "Systèmes de surveillance, d'automatisation et de supervision pour les infrastructures, le territoire et l'environnement."
+ },
+ {
+  "key": "footer.sitemap",
+  "it": "Mappa del sito",
+  "en": "Site map",
+  "fr": "Plan du site"
+ },
+ {
+  "key": "footer.discover",
+  "it": "Scopri",
+  "en": "Explore",
+  "fr": "Découvrir"
+ },
+ {
+  "key": "footer.contacts",
+  "it": "Contatti",
+  "en": "Contact",
+  "fr": "Contact"
+ },
+ {
+  "key": "footer.call",
+  "it": "Chiamaci",
+  "en": "Call us",
+  "fr": "Appelez-nous"
+ },
+ {
+  "key": "footer.write",
+  "it": "Scrivici",
+  "en": "Write to us",
+  "fr": "Écrivez-nous"
+ },
+ {
+  "key": "footer.visit",
+  "it": "Vieni a trovarci",
+  "en": "Visit us",
+  "fr": "Venez nous voir"
+ },
+ {
+  "key": "footer.follow",
+  "it": "Seguici",
+  "en": "Follow us",
+  "fr": "Suivez-nous"
+ },
+ {
+  "key": "footer.vat",
+  "it": "P.IVA",
+  "en": "VAT",
+  "fr": "TVA"
+ },
+ {
+  "key": "contact.title",
+  "it": "Contatti",
+  "en": "Contact",
+  "fr": "Contact"
+ },
+ {
+  "key": "contact.kicker",
+  "it": "Parla con un esperto",
+  "en": "Talk to an expert",
+  "fr": "Parler à un expert"
+ },
+ {
+  "key": "contact.lead",
+  "it": "Indicaci il contesto, le priorità e le aree di interesse: ti aiuteremo a individuare la soluzione più adatta.",
+  "en": "Tell us about the context, your priorities and the areas you're interested in, and we'll help you find the right solution.",
+  "fr": "Décrivez-nous le contexte, vos priorités et vos domaines d'intérêt : nous vous aiderons à trouver la solution la plus adaptée."
+ },
+ {
+  "key": "contact.responseLabel",
+  "it": "Risposta",
+  "en": "Response",
+  "fr": "Réponse"
+ },
+ {
+  "key": "contact.responseValue",
+  "it": "Entro pochi giorni lavorativi",
+  "en": "Within a few working days",
+  "fr": "Sous quelques jours ouvrés"
+ },
+ {
+  "key": "contact.areasLabel",
+  "it": "Ambiti",
+  "en": "Areas",
+  "fr": "Domaines"
+ },
+ {
+  "key": "contact.areasValue",
+  "it": "IoT, automazione, smart infrastructure",
+  "en": "IoT, automation, smart infrastructure",
+  "fr": "IoT, automatisation, infrastructures intelligentes"
+ },
+ {
+  "key": "contact.requestType",
+  "it": "Tipo di richiesta",
+  "en": "Type of request",
+  "fr": "Type de demande"
+ },
+ {
+  "key": "contact.typeContact",
+  "it": "Richiesta di contatto",
+  "en": "Contact request",
+  "fr": "Demande de contact"
+ },
+ {
+  "key": "contact.typeCandidate",
+  "it": "Candidatura",
+  "en": "Job application",
+  "fr": "Candidature"
+ },
+ {
+  "key": "contact.name",
+  "it": "Nome e cognome",
+  "en": "Full name",
+  "fr": "Nom et prénom"
+ },
+ {
+  "key": "contact.company",
+  "it": "Azienda / ente",
+  "en": "Company / organisation",
+  "fr": "Entreprise / organisme"
+ },
+ {
+  "key": "contact.phone",
+  "it": "Telefono",
+  "en": "Phone",
+  "fr": "Téléphone"
+ },
+ {
+  "key": "contact.interestsLegend",
+  "it": "Di cosa vorresti parlare?",
+  "en": "What would you like to talk about?",
+  "fr": "De quoi souhaitez-vous parler ?"
+ },
+ {
+  "key": "contact.message",
+  "it": "Messaggio",
+  "en": "Message",
+  "fr": "Message"
+ },
+ {
+  "key": "contact.messagePlaceholder",
+  "it": "Descrivi il progetto, il territorio o l'infrastruttura da monitorare.",
+  "en": "Describe the project, the area or the infrastructure to monitor.",
+  "fr": "Décrivez le projet, le territoire ou l'infrastructure à surveiller."
+ },
+ {
+  "key": "contact.cv",
+  "it": "CV o documento",
+  "en": "CV or document",
+  "fr": "CV ou document"
+ },
+ {
+  "key": "contact.cvHint",
+  "it": "PDF, DOC, DOCX, ODT, RTF o TXT. Massimo 10 MB.",
+  "en": "PDF, DOC, DOCX, ODT, RTF or TXT. 10 MB maximum.",
+  "fr": "PDF, DOC, DOCX, ODT, RTF ou TXT. 10 Mo maximum."
+ },
+ {
+  "key": "contact.submit",
+  "it": "Invia richiesta",
+  "en": "Send request",
+  "fr": "Envoyer la demande"
+ },
+ {
+  "key": "contact.sending",
+  "it": "Invio in corso…",
+  "en": "Sending…",
+  "fr": "Envoi en cours…"
+ },
+ {
+  "key": "contact.sent",
+  "it": "Richiesta inviata. Ti contatteremo usando i riferimenti indicati.",
+  "en": "Request sent. We'll get back to you using the details you provided.",
+  "fr": "Demande envoyée. Nous vous recontacterons avec les coordonnées indiquées."
+ },
+ {
+  "key": "contact.error",
+  "it": "Non siamo riusciti a inviare la richiesta. Riprova, oppure scrivici direttamente a info@axatel.it.",
+  "en": "We couldn't send your request. Please try again, or write to us directly at info@axatel.it.",
+  "fr": "Nous n'avons pas pu envoyer votre demande. Réessayez ou écrivez-nous directement à info@axatel.it."
+ },
+ {
+  "key": "contact.interests.i0",
+  "it": "Monitoraggio fiumi e livelli idrici",
+  "en": "River and water level monitoring",
+  "fr": "Surveillance des rivières et des niveaux d'eau"
+ },
+ {
+  "key": "contact.interests.i1",
+  "it": "Colate detritiche e rischio frane",
+  "en": "Debris flows and landslide risk",
+  "fr": "Laves torrentielles et risque de glissement"
+ },
+ {
+  "key": "contact.interests.i2",
+  "it": "Ponti e infrastrutture stradali",
+  "en": "Bridges and road infrastructure",
+  "fr": "Ponts et infrastructures routières"
+ },
+ {
+  "key": "contact.interests.i3",
+  "it": "Gallerie e impianti tecnologici",
+  "en": "Tunnels and technical systems",
+  "fr": "Tunnels et installations techniques"
+ },
+ {
+  "key": "contact.interests.i4",
+  "it": "Traffico intelligente e smart road",
+  "en": "Smart traffic and smart roads",
+  "fr": "Trafic intelligent et smart road"
+ },
+ {
+  "key": "contact.interests.i5",
+  "it": "Cantieri e sicurezza operativa",
+  "en": "Road works and site safety",
+  "fr": "Chantiers et sécurité opérationnelle"
+ },
+ {
+  "key": "contact.interests.i6",
+  "it": "Dashboard, allarmi e supervisione",
+  "en": "Dashboards, alarms and supervision",
+  "fr": "Tableaux de bord, alarmes et supervision"
+ },
+ {
+  "key": "contact.interests.i7",
+  "it": "Progetti IoT personalizzati",
+  "en": "Custom IoT projects",
+  "fr": "Projets IoT sur mesure"
+ },
+ {
+  "key": "products.title",
+  "it": "Prodotti",
+  "en": "Products",
+  "fr": "Produits"
+ },
+ {
+  "key": "products.kicker",
+  "it": "Prodotti",
+  "en": "Products",
+  "fr": "Produits"
+ },
+ {
+  "key": "products.lead",
+  "it": "Sistemi, sensori e piattaforme Axatel per il monitoraggio di infrastrutture, territorio e ambiente.",
+  "en": "Axatel systems, sensors and platforms for monitoring infrastructure, land and the environment.",
+  "fr": "Systèmes, capteurs et plateformes Axatel pour la surveillance des infrastructures, du territoire et de l'environnement."
+ },
+ {
+  "key": "products.empty",
+  "it": "Nessun prodotto pubblicato al momento.",
+  "en": "No products published yet.",
+  "fr": "Aucun produit publié pour le moment."
+ },
+ {
+  "key": "products.viewProduct",
+  "it": "Scheda prodotto",
+  "en": "Product details",
+  "fr": "Fiche produit"
+ },
+ {
+  "key": "products.datasheet",
+  "it": "Scheda tecnica",
+  "en": "Datasheet",
+  "fr": "Fiche technique"
+ },
+ {
+  "key": "products.specs",
+  "it": "Specifiche tecniche",
+  "en": "Technical specifications",
+  "fr": "Caractéristiques techniques"
+ },
+ {
+  "key": "products.back",
+  "it": "Tutti i prodotti",
+  "en": "All products",
+  "fr": "Tous les produits"
+ },
+ {
+  "key": "products.model",
+  "it": "Modello",
+  "en": "Model",
+  "fr": "Modèle"
+ },
+ {
+  "key": "products.categories.sistemi",
+  "it": "Sistemi di monitoraggio",
+  "en": "Monitoring systems",
+  "fr": "Systèmes de surveillance"
+ },
+ {
+  "key": "products.categories.sensori",
+  "it": "Sensori e stazioni",
+  "en": "Sensors and stations",
+  "fr": "Capteurs et stations"
+ },
+ {
+  "key": "products.categories.piattaforme",
+  "it": "Piattaforme software",
+  "en": "Software platforms",
+  "fr": "Plateformes logicielles"
+ },
+ {
+  "key": "products.categories.comunicazione",
+  "it": "Gateway e comunicazione",
+  "en": "Gateways and communication",
+  "fr": "Passerelles et communication"
+ },
+ {
+  "key": "solutions.title",
+  "it": "Soluzioni",
+  "en": "Solutions",
+  "fr": "Solutions"
+ },
+ {
+  "key": "solutions.kicker",
+  "it": "Come lo realizziamo",
+  "en": "How we do it",
+  "fr": "Comment nous le faisons"
+ },
+ {
+  "key": "solutions.lead",
+  "it": "Piattaforme, sensori, tecnologie e servizi per realizzare monitoraggio e automazione su misura.",
+  "en": "Platforms, sensors, technologies and services for tailored monitoring and automation.",
+  "fr": "Plateformes, capteurs, technologies et services pour une surveillance et une automatisation sur mesure."
+ },
+ {
+  "key": "solutions.empty",
+  "it": "Nessuna soluzione pubblicata al momento.",
+  "en": "No solutions published yet.",
+  "fr": "Aucune solution publiée pour le moment."
+ },
+ {
+  "key": "solutions.back",
+  "it": "Tutte le soluzioni",
+  "en": "All solutions",
+  "fr": "Toutes les solutions"
+ },
+ {
+  "key": "solutions.related",
+  "it": "Altre soluzioni",
+  "en": "Other solutions",
+  "fr": "Autres solutions"
+ },
+ {
+  "key": "solutions.groups.Piattaforme",
+  "it": "Piattaforme",
+  "en": "Platforms",
+  "fr": "Plateformes"
+ },
+ {
+  "key": "solutions.groups.Sensori",
+  "it": "Sensori",
+  "en": "Sensors",
+  "fr": "Capteurs"
+ },
+ {
+  "key": "solutions.groups.Tecnologie",
+  "it": "Tecnologie",
+  "en": "Technologies",
+  "fr": "Technologies"
+ },
+ {
+  "key": "solutions.groups.Servizi",
+  "it": "Servizi",
+  "en": "Services",
+  "fr": "Services"
+ },
+ {
+  "key": "process.heading",
+  "it": "Come lavoriamo",
+  "en": "How we work",
+  "fr": "Notre méthode"
+ },
+ {
+  "key": "process.steps.0.title",
+  "it": "Programmiamo",
+  "en": "We configure",
+  "fr": "Nous configurons"
+ },
+ {
+  "key": "process.steps.0.text",
+  "it": "Configuriamo sensori e firmware sulla misura reale da controllare.",
+  "en": "We set up sensors and firmware for the actual quantity to be monitored.",
+  "fr": "Nous paramétrons capteurs et firmware selon la mesure réelle à surveiller."
+ },
+ {
+  "key": "process.steps.1.title",
+  "it": "Installiamo",
+  "en": "We install",
+  "fr": "Nous installons"
+ },
+ {
+  "key": "process.steps.1.text",
+  "it": "Portiamo la tecnologia sul campo e la integriamo con l'infrastruttura.",
+  "en": "We bring the technology to the field and integrate it with the infrastructure.",
+  "fr": "Nous déployons la technologie sur le terrain et l'intégrons à l'infrastructure."
+ },
+ {
+  "key": "process.steps.2.title",
+  "it": "Raccogliamo",
+  "en": "We collect",
+  "fr": "Nous collectons"
+ },
+ {
+  "key": "process.steps.2.text",
+  "it": "Acquisiamo dati continui e affidabili da ogni punto monitorato.",
+  "en": "We acquire continuous, reliable data from every monitored point.",
+  "fr": "Nous acquérons des données continues et fiables de chaque point surveillé."
+ },
+ {
+  "key": "process.steps.3.title",
+  "it": "Analizziamo",
+  "en": "We analyse",
+  "fr": "Nous analysons"
+ },
+ {
+  "key": "process.steps.3.text",
+  "it": "Trasformiamo i segnali in informazioni utili e soglie operative.",
+  "en": "We turn signals into useful information and operating thresholds.",
+  "fr": "Nous transformons les signaux en informations utiles et en seuils opérationnels."
+ },
+ {
+  "key": "process.steps.4.title",
+  "it": "Automatizziamo",
+  "en": "We automate",
+  "fr": "Nous automatisons"
+ },
+ {
+  "key": "process.steps.4.text",
+  "it": "Attiviamo risposte immediate, come un semaforo rosso in caso di pericolo.",
+  "en": "We trigger immediate responses, such as a red light when there is danger.",
+  "fr": "Nous déclenchons des réponses immédiates, comme un feu rouge en cas de danger."
+ },
+ {
+  "key": "project.heading",
+  "it": "Hai un progetto da monitorare?",
+  "en": "Do you have a project to monitor?",
+  "fr": "Vous avez un projet à surveiller ?"
+ },
+ {
+  "key": "project.text",
+  "it": "Raccontaci il contesto: ti rispondiamo con una proposta su misura.",
+  "en": "Tell us about the context and we'll reply with a tailored proposal.",
+  "fr": "Décrivez-nous le contexte : nous vous répondrons avec une proposition sur mesure."
+ },
+ {
+  "key": "project.quote",
+  "it": "Richiedi un preventivo",
+  "en": "Request a quote",
+  "fr": "Demander un devis"
+ },
+ {
+  "key": "project.talk",
+  "it": "Parla con un esperto",
+  "en": "Talk to an expert",
+  "fr": "Parler à un expert"
+ },
+ {
+  "key": "quote.type",
+  "it": "Preventivo",
+  "en": "Quote",
+  "fr": "Devis"
+ },
+ {
+  "key": "quote.subject",
+  "it": "Prodotto o soluzione di interesse",
+  "en": "Product or solution of interest",
+  "fr": "Produit ou solution concerné"
+ },
+ {
+  "key": "quote.sector",
+  "it": "Tipo di opera o infrastruttura",
+  "en": "Type of structure or infrastructure",
+  "fr": "Type d'ouvrage ou d'infrastructure"
+ },
+ {
+  "key": "quote.sectorPlaceholder",
+  "it": "Es. ponte, galleria, versante, corso d'acqua",
+  "en": "E.g. bridge, tunnel, slope, river",
+  "fr": "Ex. pont, tunnel, versant, cours d'eau"
+ },
+ {
+  "key": "quote.sites",
+  "it": "Punti o siti da monitorare",
+  "en": "Points or sites to monitor",
+  "fr": "Points ou sites à surveiller"
+ },
+ {
+  "key": "quote.timeline",
+  "it": "Tempistiche",
+  "en": "Timing",
+  "fr": "Délais"
+ },
+ {
+  "key": "quote.timelineOptions.soon",
+  "it": "Entro 3 mesi",
+  "en": "Within 3 months",
+  "fr": "Sous 3 mois"
+ },
+ {
+  "key": "quote.timelineOptions.mid",
+  "it": "Tra 3 e 6 mesi",
+  "en": "In 3 to 6 months",
+  "fr": "Entre 3 et 6 mois"
+ },
+ {
+  "key": "quote.timelineOptions.later",
+  "it": "Oltre 6 mesi",
+  "en": "In more than 6 months",
+  "fr": "Plus de 6 mois"
+ },
+ {
+  "key": "quote.timelineOptions.open",
+  "it": "Da definire",
+  "en": "Not decided yet",
+  "fr": "À définir"
+ },
+ {
+  "key": "cases.title",
+  "it": "Tutti i casi",
+  "en": "All case studies",
+  "fr": "Toutes les réussites"
+ },
+ {
+  "key": "cases.kicker",
+  "it": "Casi di successo",
+  "en": "Success stories",
+  "fr": "Réussites"
+ },
+ {
+  "key": "cases.lead",
+  "it": "Progetti, tecnologie e applicazioni sul campo per infrastrutture più sicure, monitorate e connesse.",
+  "en": "Projects, technologies and field applications for safer, monitored and connected infrastructure.",
+  "fr": "Projets, technologies et applications sur le terrain pour des infrastructures plus sûres, surveillées et connectées."
+ },
+ {
+  "key": "cases.empty",
+  "it": "Nessun caso di successo pubblicato al momento.",
+  "en": "No success stories published yet.",
+  "fr": "Aucune réussite publiée pour le moment."
+ },
+ {
+  "key": "cases.noMatch",
+  "it": "Nessun caso in questo settore.",
+  "en": "No case studies in this sector.",
+  "fr": "Aucun cas dans ce secteur."
+ },
+ {
+  "key": "cases.read",
+  "it": "Leggi {title}",
+  "en": "Read {title}",
+  "fr": "Lire {title}"
+ },
+ {
+  "key": "cases.filterLabel",
+  "it": "Filtra per settore",
+  "en": "Filter by sector",
+  "fr": "Filtrer par secteur"
+ },
+ {
+  "key": "cases.all",
+  "it": "Tutti",
+  "en": "All",
+  "fr": "Tous"
+ },
+ {
+  "key": "trust.clients",
+  "it": "Hanno scelto Axatel",
+  "en": "They chose Axatel",
+  "fr": "Ils ont choisi Axatel"
+ },
+ {
+  "key": "trust.certifications",
+  "it": "Certificazioni e riconoscimenti",
+  "en": "Certifications and memberships",
+  "fr": "Certifications et adhésions"
+ },
+ {
+  "key": "home.phrases.0",
+  "it": "La piattaforma che trasforma i dati in\ndecisioni",
+  "en": "The platform that turns data into\ndecisions",
+  "fr": "La plateforme qui transforme les données en\ndécisions"
+ },
+ {
+  "key": "home.phrases.1",
+  "it": "La piattaforma che trasforma i dati in\nprevenzione",
+  "en": "The platform that turns data into\nprevention",
+  "fr": "La plateforme qui transforme les données en\nprévention"
+ },
+ {
+  "key": "home.phrases.2",
+  "it": "La piattaforma che trasforma i dati in\nsicurezza",
+  "en": "The platform that turns data into\nsafety",
+  "fr": "La plateforme qui transforme les données en\nsécurité"
+ },
+ {
+  "key": "home.phrases.3",
+  "it": "La piattaforma che trasforma i dati in\nrisultati",
+  "en": "The platform that turns data into\nresults",
+  "fr": "La plateforme qui transforme les données en\nrésultats"
+ },
+ {
+  "key": "home.phrases.4",
+  "it": "La piattaforma che trasforma i dati in\nvalore",
+  "en": "The platform that turns data into\nvalue",
+  "fr": "La plateforme qui transforme les données en\nvaleur"
+ },
+ {
+  "key": "home.quote",
+  "it": "Tutti noi di Axatel abbiamo un obiettivo in comune:\nabbiamo a cuore ciò che facciamo e l'impatto positivo che generiamo per i nostri partner e per le comunità in cui viviamo e operiamo.\nPer noi è sempre una questione personale\n\n\nElisa Ziglio\nCEO, Axatel",
+  "en": "All of us at Axatel share one goal:\nwe care about what we do and about the positive impact we create for our partners and for the communities where we live and work.\nFor us it is always personal\n\n\nElisa Ziglio\nCEO, Axatel",
+  "fr": "Chez Axatel, nous partageons tous un même objectif :\nnous tenons à ce que nous faisons et à l'impact positif que nous créons pour nos partenaires et pour les communautés où nous vivons et travaillons.\nPour nous, c'est toujours une affaire personnelle\n\n\nElisa Ziglio\nCEO, Axatel"
+ },
+ {
+  "key": "home.casesTitle",
+  "it": "Casi di successo",
+  "en": "Success stories",
+  "fr": "Réussites"
+ },
+ {
+  "key": "home.casesCta",
+  "it": "Scopri tutti i casi",
+  "en": "See all case studies",
+  "fr": "Voir tous les projets"
+ },
+ {
+  "key": "home.openCase",
+  "it": "Apri caso di successo: {title}",
+  "en": "Open case study: {title}",
+  "fr": "Ouvrir le projet : {title}"
+ },
+ {
+  "key": "home.explain.eyebrow",
+  "it": "Dall'hardware alla decisione",
+  "en": "From hardware to decision",
+  "fr": "Du matériel à la décision"
+ },
+ {
+  "key": "home.explain.title",
+  "it": "Gestiamo tutta la filiera.",
+  "en": "We manage the whole chain.",
+  "fr": "Nous gérons toute la chaîne."
+ },
+ {
+  "key": "home.explain.lead",
+  "it": "Un unico processo connette il campo, i dati e le azioni. Progettiamo ogni passaggio per trasformare una misura in una risposta concreta e tempestiva.",
+  "en": "A single process connects the field, the data and the actions. We design every step to turn a measurement into a concrete, timely response.",
+  "fr": "Un processus unique relie le terrain, les données et les actions. Nous concevons chaque étape pour transformer une mesure en une réponse concrète et rapide."
+ },
+ {
+  "key": "home.explain.outcomeLabel",
+  "it": "Evento rilevato",
+  "en": "Event detected",
+  "fr": "Événement détecté"
+ },
+ {
+  "key": "home.explain.outcomeTitle",
+  "it": "Un allarme, due livelli di controllo",
+  "en": "One alarm, two levels of control",
+  "fr": "Une alarme, deux niveaux de contrôle"
+ },
+ {
+  "key": "home.explain.outcome1",
+  "it": "L'evento raggiunge le piattaforme verticali, come",
+  "en": "The event reaches the vertical platforms, such as",
+  "fr": "L'événement atteint les plateformes verticales, comme"
+ },
+ {
+  "key": "home.explain.outcome3",
+  "it": ", e alimenta",
+  "en": ", and feeds",
+  "fr": ", et alimente"
+ },
+ {
+  "key": "home.explain.outcome4",
+  "it": ", dove ogni allarme attiva procedure, responsabilità e interventi tracciabili.",
+  "en": ", where every alarm triggers traceable procedures, responsibilities and actions.",
+  "fr": ", où chaque alarme déclenche des procédures, des responsabilités et des interventions traçables."
+ },
+ {
+  "key": "home.explain.scroll",
+  "it": "Scopri come funziona",
+  "en": "See how it works",
+  "fr": "Découvrir le fonctionnement"
+ },
+ {
+  "key": "home.explain.scrollAria",
+  "it": "Vai alle demo interattive",
+  "en": "Go to the interactive demos",
+  "fr": "Aller aux démos interactives"
+ },
+ {
+  "key": "demo.timeline",
+  "it": "Cronologia",
+  "en": "Timeline",
+  "fr": "Chronologie"
+ },
+ {
+  "key": "demo.procedure",
+  "it": "Procedura",
+  "en": "Procedure",
+  "fr": "Procédure"
+ },
+ {
+  "key": "demo.close",
+  "it": "Chiudi",
+  "en": "Close",
+  "fr": "Fermer"
+ },
+ {
+  "key": "demo.closeProcedure",
+  "it": "Chiudi procedure",
+  "en": "Close procedure",
+  "fr": "Fermer la procédure"
+ },
+ {
+  "key": "demo.noEvents",
+  "it": "Nessun evento rilevato",
+  "en": "No events detected",
+  "fr": "Aucun événement détecté"
+ },
+ {
+  "key": "demo.noEventsHint",
+  "it": "Interagisci con una delle demo per vedere gli allarmi in tempo reale",
+  "en": "Interact with one of the demos to see alarms in real time",
+  "fr": "Interagissez avec une des démos pour voir les alarmes en temps réel"
+ },
+ {
+  "key": "demo.alarmTypes",
+  "it": "Tipi di allarme",
+  "en": "Alarm types",
+  "fr": "Types d'alarme"
+ },
+ {
+  "key": "demo.alarmSent",
+  "it": "allarme inviato",
+  "en": "alarm sent",
+  "fr": "alarme envoyée"
+ },
+ {
+  "key": "demo.loading",
+  "it": "Caricamento...",
+  "en": "Loading...",
+  "fr": "Chargement..."
+ },
+ {
+  "key": "demo.preparing",
+  "it": "Preparazione demo...",
+  "en": "Preparing demo...",
+  "fr": "Préparation de la démo..."
+ },
+ {
+  "key": "demo.comingSoon",
+  "it": "Demo disponibile prossimamente",
+  "en": "Demo coming soon",
+  "fr": "Démo bientôt disponible"
+ },
+ {
+  "key": "demo.tapToInteract",
+  "it": "Tocca la demo per interagire",
+  "en": "Tap the demo to interact",
+  "fr": "Touchez la démo pour interagir"
+ },
+ {
+  "key": "demo.threshold",
+  "it": "Soglia {value}m",
+  "en": "Threshold {value}m",
+  "fr": "Seuil {value}m"
+ },
+ {
+  "key": "demo.maxImpact",
+  "it": "Impatto massimo {value} G",
+  "en": "Peak impact {value} G",
+  "fr": "Impact maximal {value} G"
+ },
+ {
+  "key": "demo.crossTarget",
+  "it": "Attraversa il target centrale ad alta velocità",
+  "en": "Swipe fast across the central target",
+  "fr": "Traversez rapidement la cible centrale"
+ },
+ {
+  "key": "demo.avgSpeed",
+  "it": "Velocità media {value} km/h",
+  "en": "Average speed {value} km/h",
+  "fr": "Vitesse moyenne {value} km/h"
+ },
+ {
+  "key": "demo.monitoredSign",
+  "it": "Cartello monitorato",
+  "en": "Monitored sign",
+  "fr": "Panneau surveillé"
+ },
+ {
+  "key": "demo.roadworksSign",
+  "it": "Cartello lavori in corso",
+  "en": "Road works sign",
+  "fr": "Panneau de travaux"
+ },
+ {
+  "key": "demo.sensors.impact",
+  "it": "Sensore urti",
+  "en": "Impact sensor",
+  "fr": "Capteur de chocs"
+ },
+ {
+  "key": "demo.sensors.camera",
+  "it": "Telecamera",
+  "en": "Camera",
+  "fr": "Caméra"
+ },
+ {
+  "key": "demo.sensors.river",
+  "it": "Livello fiume",
+  "en": "River level",
+  "fr": "Niveau de la rivière"
+ },
+ {
+  "key": "demo.sensors.crack",
+  "it": "Fessura monitorata",
+  "en": "Monitored crack",
+  "fr": "Fissure surveillée"
+ },
+ {
+  "key": "demo.alarms.landslide",
+  "it": "Frana",
+  "en": "Landslide",
+  "fr": "Glissement de terrain"
+ },
+ {
+  "key": "demo.alarms.traffic",
+  "it": "Traffico",
+  "en": "Traffic",
+  "fr": "Trafic"
+ },
+ {
+  "key": "demo.alarms.flood",
+  "it": "Esondazione",
+  "en": "Flooding",
+  "fr": "Crue"
+ },
+ {
+  "key": "demo.alarms.roadworks",
+  "it": "Lavori in corso",
+  "en": "Road works",
+  "fr": "Travaux en cours"
+ },
+ {
+  "key": "demo.alarms.crack",
+  "it": "Crepa aperta",
+  "en": "Open crack",
+  "fr": "Fissure ouverte"
+ },
+ {
+  "key": "demo.procedures.landslide.0",
+  "it": "Chiama responsabile di zona",
+  "en": "Call the area supervisor",
+  "fr": "Appeler le responsable de secteur"
+ },
+ {
+  "key": "demo.procedures.landslide.1",
+  "it": "Deviazione stradale",
+  "en": "Divert traffic",
+  "fr": "Dévier la circulation"
+ },
+ {
+  "key": "demo.procedures.landslide.2",
+  "it": "Limitare l'accesso alla zona fino alla verifica tecnica",
+  "en": "Restrict access to the area until the technical check",
+  "fr": "Limiter l'accès à la zone jusqu'à la vérification technique"
+ },
+ {
+  "key": "demo.procedures.traffic.0",
+  "it": "Attivare la segnalazione agli utenti della strada",
+  "en": "Alert road users",
+  "fr": "Alerter les usagers de la route"
+ },
+ {
+  "key": "demo.procedures.traffic.1",
+  "it": "Attivare messaggio PMV",
+  "en": "Show a message on the variable message signs",
+  "fr": "Afficher un message sur les panneaux à messages variables"
+ },
+ {
+  "key": "demo.procedures.flood.0",
+  "it": "Chiama responsabile di zona",
+  "en": "Call the area supervisor",
+  "fr": "Appeler le responsable de secteur"
+ },
+ {
+  "key": "demo.procedures.flood.1",
+  "it": "Informare il presidio territoriale competente",
+  "en": "Inform the local civil protection unit",
+  "fr": "Informer la protection civile locale"
+ },
+ {
+  "key": "demo.procedures.flood.2",
+  "it": "Invia comunicazione social",
+  "en": "Post a public alert on social media",
+  "fr": "Publier une alerte sur les réseaux sociaux"
+ },
+ {
+  "key": "demo.procedures.roadworks.0",
+  "it": "Verificare l'integrità della segnaletica di cantiere",
+  "en": "Check that the work-site signs are intact",
+  "fr": "Vérifier l'intégrité de la signalisation du chantier"
+ },
+ {
+  "key": "demo.procedures.roadworks.1",
+  "it": "Contattare il responsabile operativo sul posto",
+  "en": "Contact the operations manager on site",
+  "fr": "Contacter le responsable opérationnel sur place"
+ },
+ {
+  "key": "demo.procedures.crack.0",
+  "it": "Richiedere un'ispezione tecnica della struttura",
+  "en": "Request a technical inspection of the structure",
+  "fr": "Demander une inspection technique de l'ouvrage"
+ },
+ {
+  "key": "demo.procedures.crack.1",
+  "it": "Ridurre i carichi fino alla valutazione del responsabile",
+  "en": "Reduce loads until the engineer's assessment",
+  "fr": "Réduire les charges jusqu'à l'évaluation du responsable"
+ },
+ {
+  "key": "demo.apps.GeoAngel.description",
+  "it": "Monitoraggio geologico",
+  "en": "Geological monitoring",
+  "fr": "Surveillance géologique"
+ },
+ {
+  "key": "demo.apps.GeoAngel.instruction",
+  "it": "Colpisci il sensore col mouse per generare l'impatto",
+  "en": "Hit the sensor with the mouse to create an impact",
+  "fr": "Frappez le capteur avec la souris pour créer un impact"
+ },
+ {
+  "key": "demo.apps.GeoAngel.mobile",
+  "it": "Scorri rapidamente il dito attraverso il sensore centrale",
+  "en": "Swipe fast across the central sensor",
+  "fr": "Glissez rapidement le doigt sur le capteur central"
+ },
+ {
+  "key": "demo.apps.TrafficAlert.description",
+  "it": "Traffico intelligente",
+  "en": "Smart traffic",
+  "fr": "Trafic intelligent"
+ },
+ {
+  "key": "demo.apps.TrafficAlert.instruction",
+  "it": "Passa il mouse sulla card per aumentare il traffico fino alla congestione",
+  "en": "Hover over the card to increase traffic until it jams",
+  "fr": "Survolez la carte pour augmenter le trafic jusqu'à l'embouteillage"
+ },
+ {
+  "key": "demo.apps.TrafficAlert.mobile",
+  "it": "Tieni premuto sulla demo per aumentare il traffico",
+  "en": "Press and hold the demo to increase traffic",
+  "fr": "Maintenez la démo enfoncée pour augmenter le trafic"
+ },
+ {
+  "key": "demo.apps.AngelRiver.description",
+  "it": "Monitoraggio di fiumi",
+  "en": "River monitoring",
+  "fr": "Surveillance des rivières"
+ },
+ {
+  "key": "demo.apps.AngelRiver.instruction",
+  "it": "Passa il mouse sulla card per simulare la pioggia e far salire il livello",
+  "en": "Hover over the card to make it rain and raise the level",
+  "fr": "Survolez la carte pour faire pleuvoir et monter le niveau"
+ },
+ {
+  "key": "demo.apps.AngelRiver.mobile",
+  "it": "Tieni premuto sulla demo per far piovere e alzare il livello",
+  "en": "Press and hold the demo to make it rain and raise the level",
+  "fr": "Maintenez la démo enfoncée pour faire pleuvoir et monter le niveau"
+ },
+ {
+  "key": "demo.apps.AngelRoadSite.description",
+  "it": "Gestione cantieri",
+  "en": "Work-site management",
+  "fr": "Gestion des chantiers"
+ },
+ {
+  "key": "demo.apps.AngelRoadSite.instruction",
+  "it": "Colpisci col mouse il cartello lavori in corso per far scattare l'allarme",
+  "en": "Hit the road works sign with the mouse to trigger the alarm",
+  "fr": "Frappez le panneau de travaux avec la souris pour déclencher l'alarme"
+ },
+ {
+  "key": "demo.apps.AngelRoadSite.mobile",
+  "it": "Scorri rapidamente il dito sul cartello per generare l'impatto",
+  "en": "Swipe fast across the sign to create an impact",
+  "fr": "Glissez rapidement le doigt sur le panneau pour créer un impact"
+ },
+ {
+  "key": "demo.apps.AngelBridge.description",
+  "it": "Monitoraggio ponti",
+  "en": "Bridge monitoring",
+  "fr": "Surveillance des ponts"
+ },
+ {
+  "key": "demo.apps.AngelBridge.instruction",
+  "it": "Passa il mouse sulla card per aprire la crepa",
+  "en": "Hover over the card to open the crack",
+  "fr": "Survolez la carte pour ouvrir la fissure"
+ },
+ {
+  "key": "demo.apps.AngelBridge.mobile",
+  "it": "Tieni premuto sulla demo per aprire la crepa",
+  "en": "Press and hold the demo to open the crack",
+  "fr": "Maintenez la démo enfoncée pour ouvrir la fissure"
+ },
+ {
+  "key": "chat.title",
+  "it": "Chiedi ad Axatel",
+  "en": "Ask Axatel",
+  "fr": "Demandez à Axatel"
+ },
+ {
+  "key": "chat.welcome",
+  "it": "Ciao! Posso rispondere a domande su Axatel e le nostre soluzioni.",
+  "en": "Hi! I can answer questions about Axatel and our solutions.",
+  "fr": "Bonjour ! Je peux répondre à vos questions sur Axatel et nos solutions."
+ },
+ {
+  "key": "chat.placeholder",
+  "it": "Scrivi una domanda…",
+  "en": "Type a question…",
+  "fr": "Écrivez une question…"
+ },
+ {
+  "key": "chat.restart",
+  "it": "Ricomincia la conversazione",
+  "en": "Start the conversation again",
+  "fr": "Recommencer la conversation"
+ },
+ {
+  "key": "chat.close",
+  "it": "Chiudi",
+  "en": "Close",
+  "fr": "Fermer"
+ },
+ {
+  "key": "chat.closeChat",
+  "it": "Chiudi la chat",
+  "en": "Close the chat",
+  "fr": "Fermer le chat"
+ },
+ {
+  "key": "chat.openChat",
+  "it": "Apri la chat",
+  "en": "Open the chat",
+  "fr": "Ouvrir le chat"
+ },
+ {
+  "key": "chat.message",
+  "it": "Messaggio",
+  "en": "Message",
+  "fr": "Message"
+ },
+ {
+  "key": "chat.send",
+  "it": "Invia",
+  "en": "Send",
+  "fr": "Envoyer"
+ },
+ {
+  "key": "chat.invalid",
+  "it": "Risposta non valida dal server.",
+  "en": "The server sent an invalid answer.",
+  "fr": "Le serveur a envoyé une réponse non valide."
+ },
+ {
+  "key": "chat.unavailable",
+  "it": "Non riesco a rispondere in questo momento. Se è la prima domanda dopo un riavvio, riprova tra un minuto.",
+  "en": "I can't answer right now. If this is the first question after a restart, try again in a minute.",
+  "fr": "Je ne peux pas répondre pour le moment. Si c'est la première question après un redémarrage, réessayez dans une minute."
+ },
+ {
+  "key": "chat.suggestions.0",
+  "it": "Cosa fa Axatel?",
+  "en": "What does Axatel do?",
+  "fr": "Que fait Axatel ?"
+ },
+ {
+  "key": "chat.suggestions.1",
+  "it": "Dove siete?",
+  "en": "Where are you based?",
+  "fr": "Où êtes-vous situés ?"
+ },
+ {
+  "key": "chat.suggestions.2",
+  "it": "Cos'è Smart Road?",
+  "en": "What is Smart Road?",
+  "fr": "Qu'est-ce que Smart Road ?"
+ },
+ {
+  "key": "chat.suggestions.3",
+  "it": "Come vi contatto?",
+  "en": "How can I contact you?",
+  "fr": "Comment vous contacter ?"
+ },
+ {
+  "key": "glossary.searchLabel",
+  "it": "Cerca nel glossario",
+  "en": "Search the glossary",
+  "fr": "Rechercher dans le glossaire"
+ },
+ {
+  "key": "glossary.placeholder",
+  "it": "Scrivi un termine o un concetto",
+  "en": "Type a term or a concept",
+  "fr": "Écrivez un terme ou un concept"
+ },
+ {
+  "key": "glossary.clear",
+  "it": "Azzera",
+  "en": "Clear",
+  "fr": "Effacer"
+ },
+ {
+  "key": "glossary.noResults",
+  "it": "Nessun termine trovato",
+  "en": "No terms found",
+  "fr": "Aucun terme trouvé"
+ },
+ {
+  "key": "glossary.noResultsHint",
+  "it": "Prova con una parola più breve o con un concetto collegato.",
+  "en": "Try a shorter word or a related concept.",
+  "fr": "Essayez un mot plus court ou un concept proche."
+ },
+ {
+  "key": "glossary.showAll",
+  "it": "Mostra tutti i termini",
+  "en": "Show all terms",
+  "fr": "Afficher tous les termes"
+ },
+ {
+  "key": "glossary.available",
+  "it": "{count} termini disponibili",
+  "en": "{count} terms available",
+  "fr": "{count} termes disponibles"
+ },
+ {
+  "key": "glossary.foundOne",
+  "it": "1 termine trovato",
+  "en": "1 term found",
+  "fr": "1 terme trouvé"
+ },
+ {
+  "key": "glossary.found",
+  "it": "{count} termini trovati",
+  "en": "{count} terms found",
+  "fr": "{count} termes trouvés"
+ },
+ {
+  "key": "comingSoon.status",
+  "it": "Prossimamente",
+  "en": "Coming soon",
+  "fr": "Bientôt disponible"
+ },
+ {
+  "key": "comingSoon.title",
+  "it": "Stiamo preparando questa pagina.",
+  "en": "We are preparing this page.",
+  "fr": "Nous préparons cette page."
+ },
+ {
+  "key": "comingSoon.cta",
+  "it": "Parla con noi",
+  "en": "Talk to us",
+  "fr": "Parlez-nous"
+ },
+ {
+  "key": "team.subtitle",
+  "it": "Nessuno risolve un problema da solo",
+  "en": "Nobody solves a problem alone",
+  "fr": "Personne ne résout un problème seul"
+ },
+ {
+  "key": "team.kicker",
+  "it": "Il nostro team",
+  "en": "Our team",
+  "fr": "Notre équipe"
+ },
+ {
+  "key": "team.back",
+  "it": "Torna al team",
+  "en": "Back to the team",
+  "fr": "Retour à l'équipe"
+ },
+ {
+  "key": "team.peopleAria",
+  "it": "Persone del team Axatel",
+  "en": "People in the Axatel team",
+  "fr": "Membres de l'équipe Axatel"
+ },
+ {
+  "key": "team.discover",
+  "it": "Scopri {name}",
+  "en": "Meet {name}",
+  "fr": "Découvrir {name}"
+ },
+ {
+  "key": "team.department",
+  "it": "Reparto {name}",
+  "en": "{name} department",
+  "fr": "Service {name}"
+ },
+ {
+  "key": "team.reportsTo",
+  "it": "Riporta a",
+  "en": "Reports to",
+  "fr": "Rattaché à"
+ },
+ {
+  "key": "team.directReports",
+  "it": "Il suo team",
+  "en": "Their team",
+  "fr": "Son équipe"
+ },
+ {
+  "key": "info.related",
+  "it": "Altre pagine",
+  "en": "More pages",
+  "fr": "Autres pages"
+ },
+ {
+  "key": "info.sectionAria",
+  "it": "Pagine della sezione",
+  "en": "Pages in this section",
+  "fr": "Pages de la section"
+ },
+ {
+  "key": "blog.lead",
+  "it": "Novità, progetti e aggiornamenti dal mondo Axatel.",
+  "en": "News, projects and updates from the Axatel world.",
+  "fr": "Actualités, projets et nouveautés du monde Axatel."
+ },
+ {
+  "key": "blog.empty",
+  "it": "Nessuna notizia pubblicata al momento.",
+  "en": "No news published yet.",
+  "fr": "Aucune actualité publiée pour le moment."
+ },
+ {
+  "key": "blog.back",
+  "it": "Torna alle news",
+  "en": "Back to the news",
+  "fr": "Retour aux actualités"
+ },
+ {
+  "key": "blog.read",
+  "it": "Leggi {title}",
+  "en": "Read {title}",
+  "fr": "Lire {title}"
+ },
+ {
+  "key": "blog.notFound",
+  "it": "Articolo non trovato",
+  "en": "Article not found",
+  "fr": "Article introuvable"
+ },
+ {
+  "key": "blog.newPostsOne",
+  "it": "1 nuova notizia",
+  "en": "1 new story",
+  "fr": "1 nouvelle actualité"
+ },
+ {
+  "key": "blog.newPosts",
+  "it": "{count} nuove notizie",
+  "en": "{count} new stories",
+  "fr": "{count} nouvelles actualités"
+ },
+ {
+  "key": "services.title",
+  "it": "Servizi",
+  "en": "Services",
+  "fr": "Services"
+ },
+ {
+  "key": "services.lead",
+  "it": "Piattaforme, sensori, tecnologie e servizi per realizzare monitoraggio e automazione su misura.",
+  "en": "Platforms, sensors, technologies and services for tailored monitoring and automation.",
+  "fr": "Plateformes, capteurs, technologies et services pour une surveillance et une automatisation sur mesure."
+ },
+ {
+  "key": "services.empty",
+  "it": "Nessun servizio pubblicato al momento.",
+  "en": "No services published yet.",
+  "fr": "Aucun service publié pour le moment."
+ },
+ {
+  "key": "ui.contactCopied",
+  "it": "Contatto copiato negli appunti",
+  "en": "Contact copied to the clipboard",
+  "fr": "Contact copié dans le presse-papiers"
+ },
+ {
+  "key": "seo.homeTitle",
+  "it": "Piattaforma IoT per monitoraggio, automazione e Smart City",
+  "en": "IoT platform for monitoring, automation and Smart Cities",
+  "fr": "Plateforme IoT pour la surveillance, l'automatisation et la Smart City"
+ },
+ {
+  "key": "seo.homeDescription",
+  "it": "Axatel sviluppa piattaforme software per il monitoraggio IoT in tempo reale. Soluzioni per infrastrutture, ponti, fiumi, geologia, traffico intelligente e automazione industriale.",
+  "en": "Axatel develops software platforms for real-time IoT monitoring. Solutions for infrastructure, bridges, rivers, geology, smart traffic and industrial automation.",
+  "fr": "Axatel développe des plateformes logicielles de surveillance IoT en temps réel. Solutions pour les infrastructures, les ponts, les rivières, la géologie, le trafic intelligent et l'automatisation industrielle."
+ },
+ {
+  "key": "seo.homeOgTitle",
+  "it": "Piattaforma IoT",
+  "en": "IoT platform",
+  "fr": "Plateforme IoT"
+ },
+ {
+  "key": "seo.homeOgDescription",
+  "it": "Monitoraggio intelligente, dashboard in tempo reale, gestione allarmi e analisi dati per Smart City e Industria 4.0.",
+  "en": "Smart monitoring, real-time dashboards, alarm management and data analysis for Smart Cities and Industry 4.0.",
+  "fr": "Surveillance intelligente, tableaux de bord en temps réel, gestion des alarmes et analyse de données pour la Smart City et l'Industrie 4.0."
+ },
+ {
+  "key": "seo.teamDescription",
+  "it": "Le persone e le competenze che trasformano insieme problemi complessi in soluzioni Axatel.",
+  "en": "The people and skills that together turn complex problems into Axatel solutions.",
+  "fr": "Les personnes et les compétences qui, ensemble, transforment des problèmes complexes en solutions Axatel."
+ },
+ {
+  "key": "errors.page",
+  "it": "Pagina non trovata",
+  "en": "Page not found",
+  "fr": "Page introuvable"
+ },
+ {
+  "key": "errors.product",
+  "it": "Prodotto non trovato",
+  "en": "Product not found",
+  "fr": "Produit introuvable"
+ },
+ {
+  "key": "errors.topic",
+  "it": "Argomento non trovato",
+  "en": "Topic not found",
+  "fr": "Sujet introuvable"
+ },
+ {
+  "key": "caseDetail.breadcrumb",
+  "it": "Percorso",
+  "en": "Breadcrumb",
+  "fr": "Fil d'Ariane"
+ },
+ {
+  "key": "caseDetail.all",
+  "it": "Tutti i casi di successo",
+  "en": "All success stories",
+  "fr": "Toutes les réussites"
+ },
+ {
+  "key": "caseDetail.notFound",
+  "it": "Caso di successo non trovato",
+  "en": "Case study not found",
+  "fr": "Projet introuvable"
+ }
+]

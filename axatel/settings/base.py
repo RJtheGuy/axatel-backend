@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "blog",
     "seo",
     "chatbot",
+    "translation",                   # self-hosted machine translation (Opus-MT)
     "casi",
     "monitoring",
     "solutions",
@@ -210,3 +211,8 @@ WAGTAILSEO_TWITTER_SITE  = "@axatel"
 WAGTAILIMAGES_EXTENSIONS = ["gif", "jpg", "jpeg", "png", "webp", "svg"]
 
 FILE_UPLOAD_PERMISSIONS = None
+
+
+# Self-hosted machine translation (translation/engine.py): where the converted
+# Opus-MT models live (manage.py setup_translation_models puts them there).
+TRANSLATION_MODEL_DIR = os.environ.get("TRANSLATION_MODEL_DIR", str(BASE_DIR / "models" / "mt"))

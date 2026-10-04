@@ -3,7 +3,19 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from wagtail.models import Site
 
-from .site_settings import ChatbotSettings, FooterSettings, NavigationSettings, TeamSettings
+from .site_settings import SOCIAL_CHOICES, BrandingSettings, ChatbotSettings, FooterSettings, NavigationSettings, TeamSettings
+
+SOCIAL_NAMES = dict(SOCIAL_CHOICES)
+
+
+def _file_path(image) -> str:
+    """Address of an uploaded image's original file, without the host:
+    the web server serves /media/ on the same address as the site, so the
+    browser can also draw it into the particle animation."""
+    try:
+        return image.file.url if image and image.file else ""
+    except Exception:
+        return ""
 
 
 def _stream_raw_values(stream) -> list:
@@ -55,6 +67,16 @@ class SiteSettingsView(APIView):
         nav = NavigationSettings.for_site(site)
         footer = FooterSettings.for_site(site)
         chatbot = ChatbotSettings.for_site(site)
+        branding = BrandingSettings.for_site(site)
+        social = [
+            {
+                "network": value.get("network") or "other",
+                "label": (value.get("label") or "").strip() or SOCIAL_NAMES.get(value.get("network"), "Social"),
+                "url": value.get("url") or "",
+            }
+            for value in (block.value for block in footer.social or [])
+            if value.get("visible", True) and value.get("url")
+        ]
 
         return Response({
             "navigation": {
@@ -76,6 +98,12 @@ class SiteSettingsView(APIView):
                 "vat_value": footer.vat_value,
                 "tax_label": footer.tax_label,
                 "tax_value": footer.tax_value,
+                "social": social,
+            },
+            "branding": {
+                "logo": _file_path(branding.logo),
+                "particle_logo": _file_path(branding.particle_logo) or _file_path(branding.logo),
+                "header_wing": _file_path(branding.header_wing),
             },
             "chatbot": {
                 "enabled": chatbot.enabled,
@@ -151,3 +179,45 @@ class TeamView(APIView):
                 "department": member.translated("department", language),
             })
         return Response({"members": members, "labelMode": team.label_mode})
+
+
+class RedirectsView(APIView):
+    """Redirects managed in the CMS (Impostazioni → Reindirizzamenti), for
+    the frontend, which serves the pages: [{from, to, permanent}].
+    Wagtail adds one by itself when a published page's slug changes."""
+
+    def get(self, request):
+        from wagtail.contrib.redirects.models import Redirect
+
+        site = Site.find_for_request(request)
+        rows = []
+        for redirect in Redirect.objects.filter(models_q_site(site)).select_related("redirect_page"):
+            target = redirect.link
+            if redirect.redirect_page_id:
+                page = redirect.redirect_page.specific
+                if not page.live:
+                    continue
+                target = page.url
+            if not target:
+                continue
+            rows.append({"from": redirect.old_path, "to": target, "permanent": redirect.is_permanent})
+        return Response({"redirects": rows})
+
+
+def models_q_site(site):
+    from django.db.models import Q
+    return Q(site__isnull=True) | Q(site=site) if site else Q()
+
+
+class BrandingView(APIView):
+    """Logo and header picture (Impostazioni → Logo e immagini del sito);
+    empty strings mean "use the built-in file". Small on purpose: the
+    frontend asks for it on every page it renders."""
+
+    def get(self, request):
+        branding = BrandingSettings.for_site(Site.find_for_request(request))
+        return Response({
+            "logo": _file_path(branding.logo),
+            "particle_logo": _file_path(branding.particle_logo) or _file_path(branding.logo),
+            "header_wing": _file_path(branding.header_wing),
+        })

@@ -61,7 +61,7 @@ grep -qE '^ADMIN_EMAILS=.+' "$APP/.env" && ok "ADMIN_EMAILS set (contact notific
 
 # ── 3. API (Django directly) ─────────────────────────────────────────────
 section "3. API"
-for ep in site-settings/ themes/active/ "pages/?limit=1" images/?limit=1 team/; do
+for ep in site-settings/ themes/active/ "pages/?limit=1" images/?limit=1 team/ redirects/ branding/; do
   c=$(code "$BACKEND/api/v2/$ep"); [ "$c" = 200 ] && ok "/api/v2/$ep → 200" || bad "/api/v2/$ep → $c"
 done
 c=$(curl -s -o /dev/null -m 20 -w "%{http_code}" -H "Host: $HOST" -X POST "$BACKEND/api/v2/themes/restore/")
@@ -139,6 +139,26 @@ c=$(code "$SITE/questa-pagina-non-esiste-$$"); [ "$c" = 404 ] && ok "unknown pag
 
 c=$(code "$SITE/blog")
 [ "$c" = 301 ] && ok "/blog → 301 to /news (old links keep working)" || warn "/blog → $c (expected a 301 redirect to /news)"
+# Chatbot: model on disk (not downloaded while a visitor waits) and answering
+if ls "$APP"/models/chatbot/*/modules.json >/dev/null 2>&1; then ok "chatbot model on disk (models/chatbot)"
+else warn "chatbot model not on disk: downloaded at the first question  → manage.py setup_chatbot_model"; fi
+c=$(curl -s -o /dev/null -m 90 -w "%{http_code}" -H "Host: $HOST" -H "X-Smoke-Test: 1" -H "Content-Type: application/json" \
+    -X POST -d '{"message":"Dove siete?"}' "$BACKEND/api/v2/chatbot/ask/")
+[ "$c" = 200 ] && ok "chatbot answers (/api/v2/chatbot/ask/)" || bad "chatbot → $c"
+# Self-hosted translation: models converted and the job runner installed
+if [ -f "$APP/models/mt/opus-mt-it-en/model.bin" ] && [ -f "$APP/models/mt/opus-mt-it-fr/model.bin" ]; then
+  ok "translation models present (models/mt)"
+else
+  warn "translation models missing  → manage.py setup_translation_models"
+fi
+[ -f /etc/cron.d/axatel-translation ] && ok "translation job runner installed (cron)" \
+  || warn "'Traduci' requests are not processed  → cp deploy/translation.cron /etc/cron.d/axatel-translation"
+failed_jobs=$(sudo -u www-data "$PY" manage.py shell -c "from translation.models import TranslationJob as J; print(J.objects.filter(status='failed').count())" 2>/dev/null | tail -1)
+[ "${failed_jobs:-0}" = 0 ] && ok "no failed translation requests" || warn "$failed_jobs failed translation request(s)  → CMS Snippets → Traduzioni richieste"
+c=$(code "$SITE/monitoraggio/gallerie")
+[ "$c" = 301 ] && ok "/monitoraggio/gallerie → 301 (renamed Tunnel; CMS redirects work)" || warn "/monitoraggio/gallerie → $c (expected a redirect to /monitoraggio/tunnel  → manage.py apply_site_corrections)"
+forms=$(sudo -u www-data "$PY" manage.py apply_site_corrections --dry-run 2>/dev/null | grep -c "form already on the page")
+[ "${forms:-0}" -ge 2 ] && ok "contact form on Diventa partner and Invia il CV" || warn "contact form not yet on Diventa partner / Invia il CV  → manage.py apply_site_corrections"
 
 # ── 6. Not indexed by search engines (protects the live axatel.it) ────────
 section "6. Search engines"

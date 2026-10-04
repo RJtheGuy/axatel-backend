@@ -1,0 +1,4 @@
+# Translations requested with the "Traduci" button in the CMS.
+# Install: cp deploy/translation.cron /etc/cron.d/axatel-translation
+# Runs every minute as www-data; flock stops two runs overlapping.
+* * * * * www-data cd /var/www/axatel && DJANGO_SETTINGS_MODULE=axatel.settings.production flock -n /tmp/axatel-translation.lock venv/bin/python manage.py run_translation_jobs >> /var/www/axatel/logs/translation.log 2>&1

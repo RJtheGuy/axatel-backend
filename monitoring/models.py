@@ -32,6 +32,7 @@ class MonitoringPage(CardDetailPage):
         APIField("tags", serializer=TagListField()),
         APIField("icon"),
         APIField("short_description"),
+        APIField("image_frame"),
         APIField("body"),
     ]
 
@@ -49,12 +50,19 @@ class MonitoringPage(CardDetailPage):
         related_name="+",
         verbose_name="Immagine di copertina",
     )
+    image_frame = models.BooleanField(
+        default=False,
+        verbose_name="Riquadro bianco attorno all'immagine",
+        help_text="Spento: l'immagine appoggia direttamente sullo sfondo (il bianco del disegno sparisce). "
+                  "Acceso: l'immagine sta in un riquadro bianco con ombra.",
+    )
     tags = ClusterTaggableManager(through=MonitoringPageTag, blank=True)
 
     content_panels = CardDetailPage.content_panels + [
         MultiFieldPanel([
             FieldPanel("category"),
             FieldPanel("cover_image"),
+            FieldPanel("image_frame"),
             FieldPanel("tags"),
         ], heading="Meta monitoraggio"),
     ]

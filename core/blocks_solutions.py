@@ -234,3 +234,51 @@ class FaqBlock(blocks.StructBlock):
                 for item in value.get("items", [])
             ],
         }
+
+
+CONTACT_FORM_TYPES = [
+    ("contact", "Richiesta di contatto"),
+    ("partner", "Proposta di collaborazione (Diventa partner)"),
+    ("candidate", "Candidatura (Lavora con noi)"),
+    ("quote", "Richiesta di preventivo"),
+]
+
+
+class ContactFormBlock(blocks.StructBlock):
+    """A contact form right on the page, so visitors don't need an extra
+    click to /contatti. Requests arrive in the same list as the contact
+    page (django-admin → Richieste di contatto), marked with their type.
+    Add or remove the block to switch the form on or off for a page."""
+    heading = blocks.CharBlock(max_length=120, required=False, default="Scrivici", label="Titolo")
+    intro = blocks.TextBlock(required=False, label="Testo sopra il modulo")
+    form_type = blocks.ChoiceBlock(
+        choices=CONTACT_FORM_TYPES, default="contact", label="Tipo di richiesta",
+        help_text="Così sai da quale pagina arriva la richiesta.",
+    )
+    show_company = blocks.BooleanBlock(required=False, default=True, label="Chiedi l'azienda")
+    show_phone = blocks.BooleanBlock(required=False, default=True, label="Chiedi il telefono")
+    show_message = blocks.BooleanBlock(required=False, default=True, label="Chiedi un messaggio")
+    show_attachment = blocks.BooleanBlock(
+        required=False, default=False, label="Permetti un allegato (CV o documento)",
+        help_text="PDF, Word, ODT, RTF o TXT, massimo 10 MB.",
+    )
+    submit_label = blocks.CharBlock(max_length=40, required=False, label="Testo del pulsante", help_text="Vuoto = 'Invia richiesta'.")
+    success_message = blocks.CharBlock(max_length=200, required=False, label="Messaggio dopo l'invio",
+                                       help_text="Vuoto = 'Richiesta inviata. Ti risponderemo al più presto.'")
+
+    class Meta:
+        icon = "mail"
+        label = "Modulo di contatto"
+
+    def get_api_representation(self, value, context=None):
+        return {
+            "heading": value.get("heading") or "",
+            "intro": value.get("intro") or "",
+            "form_type": value.get("form_type") or "contact",
+            "show_company": bool(value.get("show_company")),
+            "show_phone": bool(value.get("show_phone")),
+            "show_message": bool(value.get("show_message")),
+            "show_attachment": bool(value.get("show_attachment")),
+            "submit_label": value.get("submit_label") or "",
+            "success_message": value.get("success_message") or "",
+        }

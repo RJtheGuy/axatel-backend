@@ -159,6 +159,7 @@ class ContactSubmission(models.Model):
         ("contact", "Richiesta di contatto"),
         ("candidate", "Candidatura"),
         ("quote", "Richiesta di preventivo"),
+        ("partner", "Proposta di collaborazione"),
     ]
 
     name = models.CharField(max_length=150)

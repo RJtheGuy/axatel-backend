@@ -44,3 +44,9 @@ sentence-transformers
 numpy
 
 dj-database-url>=2.1.0
+# Self-hosted machine translation (translation app): Opus-MT models run
+# with CTranslate2 on the CPU. transformers (tokenizer, one-off conversion)
+# comes with sentence-transformers above.
+ctranslate2>=4.4,<5
+sentencepiece>=0.2
+sacrebleu>=2.4

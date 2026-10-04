@@ -189,6 +189,28 @@ class FooterContactBlock(blocks.StructBlock):
         label = "Contatto footer"
 
 
+SOCIAL_CHOICES = [
+    ("linkedin", "LinkedIn"),
+    ("facebook", "Facebook"),
+    ("instagram", "Instagram"),
+    ("youtube", "YouTube"),
+    ("x", "X (Twitter)"),
+    ("other", "Altro"),
+]
+
+
+class SocialLinkBlock(blocks.StructBlock):
+    network = blocks.ChoiceBlock(choices=SOCIAL_CHOICES, default="linkedin", label="Social")
+    url = blocks.URLBlock(label="Indirizzo della pagina")
+    label = blocks.CharBlock(max_length=40, required=False, label="Nome mostrato",
+                             help_text="Vuoto = il nome del social (es. 'Facebook').")
+    visible = blocks.BooleanBlock(required=False, default=True, label="Visibile")
+
+    class Meta:
+        icon = "link-external"
+        label = "Social"
+
+
 @register_setting(icon="site")
 class FooterSettings(BaseSiteSetting):
     """Footer contacts and company registration details."""
@@ -200,6 +222,14 @@ class FooterSettings(BaseSiteSetting):
         verbose_name="Contatti",
     )
 
+    social = StreamField(
+        [("social", SocialLinkBlock())],
+        use_json_field=True,
+        blank=True,
+        verbose_name="Seguici (social)",
+        help_text="Mostrati nel footer sotto 'Seguici'. Spegni 'Visibile' per nasconderne uno.",
+    )
+
     vat_label = models.CharField(max_length=60, blank=True, default="Partita IVA:")
     vat_value = models.CharField(max_length=60, blank=True)
     tax_label = models.CharField(max_length=60, blank=True, default="Codice Fiscale:")
@@ -207,6 +237,7 @@ class FooterSettings(BaseSiteSetting):
 
     panels = [
         FieldPanel("contacts"),
+        FieldPanel("social"),
         MultiFieldPanel([
             FieldPanel("vat_label"),
             FieldPanel("vat_value"),
@@ -393,3 +424,31 @@ class TeamMember(ClusterableModel, Orderable):
 
     def __str__(self):
         return self.name
+
+
+@register_setting(icon="image")
+class BrandingSettings(BaseSiteSetting):
+    """Logo and pictures used across the whole site. Empty = the built-in
+    files shipped with the site. SVG or PNG with a transparent background
+    work best."""
+
+    logo = models.ForeignKey(
+        "wagtailimages.Image", null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+        verbose_name="Logo",
+        help_text="Nel menu in alto e nell'animazione a particelle della home. SVG o PNG trasparente.",
+    )
+    particle_logo = models.ForeignKey(
+        "wagtailimages.Image", null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+        verbose_name="Logo per l'animazione a particelle",
+        help_text="Facoltativo: un'altra versione del logo solo per le particelle. Vuoto = il logo qui sopra.",
+    )
+    header_wing = models.ForeignKey(
+        "wagtailimages.Image", null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+        verbose_name="Ala nelle intestazioni",
+        help_text="Il disegno accanto al titolo in cima alle pagine e nella citazione della home. PNG trasparente.",
+    )
+
+    panels = [FieldPanel("logo"), FieldPanel("particle_logo"), FieldPanel("header_wing")]
+
+    class Meta:
+        verbose_name = "Logo e immagini del sito"

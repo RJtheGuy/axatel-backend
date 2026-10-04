@@ -1,0 +1,24 @@
+{% extends "wagtailadmin/base.html" %}
+{% block titletag %}Traduci "{{ page.title }}"{% endblock %}
+{% block content %}
+    {% include "wagtailadmin/shared/header.html" with title="Traduci la pagina" subtitle=page.title icon="globe" %}
+    <div class="nice-padding">
+        <p>Il modello di traduzione gira sul vostro server: nessun testo esce dal sito.</p>
+        <p>La traduzione diventa una <strong>bozza</strong> della versione inglese o francese di questa pagina:
+           niente va online finché qualcuno non la rilegge e preme <strong>Pubblica</strong>.
+           I nomi dei prodotti (Impostazioni → Termini da non tradurre) restano come sono.</p>
+        {% if pending %}<p class="help-block help-warning">Una traduzione di questa pagina è già in coda.</p>{% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <fieldset>
+                {% for code, label in languages %}
+                    <label style="display:block;margin:6px 0"><input type="checkbox" name="{{ code }}" value="1" checked> {{ label }}</label>
+                {% empty %}
+                    <p>Nessuna lingua oltre all'italiano è attiva nel CMS.</p>
+                {% endfor %}
+            </fieldset>
+            {% if languages %}<button type="submit" class="button">Traduci (bozza)</button>{% endif %}
+            <a href="{% url 'wagtailadmin_pages:edit' page.id %}" class="button button-secondary">Annulla</a>
+        </form>
+    </div>
+{% endblock %}

@@ -22,6 +22,7 @@ from .blocks_solutions import (
     StepsBlock,
     DeviceCardsBlock,
     CaseCardsBlock,
+    ContactFormBlock,
 )
 
 
@@ -171,4 +172,5 @@ BODY_BLOCKS = [
     ("device_cards", DeviceCardsBlock()),
     ("case_cards", CaseCardsBlock()),
     ("faq", FaqBlock()),
+    ("contact_form", ContactFormBlock()),
 ]

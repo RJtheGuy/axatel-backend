@@ -78,10 +78,10 @@ All page types have the **Promote** tab (SEO title, meta description, social ima
 
 | Admin name | Model | Allowed under | Fields the editor fills in | Drawn by (frontend) |
 |---|---|---|---|---|
-| Home Page | `home.HomePage` | Root | Rotating hero phrases, hero quote, hero logo, **"Fiducia" panel (client logos, certifications)**, blocks | `pages/index.vue` — only the Fiducia strip is read (see §6) |
+| Home Page | `home.HomePage` | Root | **Prima schermata** (kicker, title in three parts, text, two buttons, "Monitoraggio attivo 24/7" on/off — empty = built-in text), rotating hero phrases, hero quote, hero logo, **"Fiducia" panel (client logos, certifications)**, blocks | `pages/index.vue`, `components/dashboard/Citazione.vue` |
 | Pagina generica | `home.FlexPage` | Home, another Pagina generica | Blocks only | `pages/[...slug].vue` (any URL no other page claims) |
 | Indice Monitoraggio | `monitoring.MonitoringIndexPage` | Home | Intro (blocks) | `pages/monitoraggio/index.vue` |
-| Argomento monitoraggio | `monitoring.MonitoringPage` | Indice Monitoraggio | Emoji icon, card text, category (Ambiente / Viabilità / Strutture), cover image, tags, blocks | `pages/monitoraggio/[slug].vue` |
+| Argomento monitoraggio | `monitoring.MonitoringPage` | Indice Monitoraggio | Emoji icon, card text, category (Ambiente / Viabilità / Strutture), cover image, **Riquadro bianco** on/off (off = picture sits on the page), tags, blocks. **Unpublish to hide a topic**: its page, card and sitemap entry disappear (the built-in text is used only while the CMS is unreachable); also switch its menu link's Visibile off | `pages/monitoraggio/[slug].vue` |
 | Indice Casi di successo | `casi.CasiIndexPage` | Home | Intro (plain text) | `pages/casi/index.vue` |
 | Caso di successo | `casi.CasoSuccessoPage` | Indice Casi | Client, category, card description, cover image, tags, body (**rich text**, not blocks) | `pages/casi/[slug].vue` + homepage carousel |
 | Indice News / Articolo News | `blog.BlogIndexPage` / `blog.BlogPost` (the code keeps the name "blog") | Home / Indice News | Author, date, cover, excerpt, blocks, tags | `pages/news/index.vue`, `pages/news/[slug].vue` |
@@ -124,6 +124,7 @@ A **block** is one section of a page. Editors stack blocks to build a page. The 
 | Schede dispositivi | `device_cards` | Pick Prodotto pages → cards with picture and link | `CmsDeviceCards.vue` |
 | Casi di successo collegati | `case_cards` | Pick case studies → cards | `CmsCaseCards.vue` |
 | Domande frequenti | `faq` | Questions that open one at a time; also sent to Google as FAQPage data | `CmsFaq.vue` |
+| Modulo di contatto | `contact_form` | The contact form right on the page (no extra click): title, text, request type (contatto / collaborazione / candidatura / preventivo), switches for company, phone, message and attachment (CV). Requests arrive in Richieste di contatto. Remove the block to switch it off | `CmsContactForm.vue` |
 
 The last two follow the chosen pages: rename or re-picture a product and every card showing it updates. Unpublished pages are left out automatically.
 
@@ -138,14 +139,22 @@ These are one-per-site forms, not pages. The frontend reads them from `GET /api/
 | Setting | Controls | Notes |
 |---|---|---|
 | **Navigazione** | Top menu: items, dropdown columns, links; header button text/URL; English/French labels | Links should use "page" (follows slug changes); use "custom URL" only for anchors or external links. Every item, group and link has a **Visibile** switch: turn it off to hide it without deleting it. **If this is empty, the navbar uses `app/data/navigation.json`** instead. |
-| **Footer** | Contact rows (phone, email, address), P.IVA, Codice Fiscale | Used by the homepage footer. |
+| **Footer** | Contact rows (phone, email, address), **Seguici (social)** — LinkedIn, Facebook… each with a Visibile switch — P.IVA, Codice Fiscale | Used on every page. An old "Seguici" contact row is replaced by the social list. |
+| **Logo e immagini del sito** | Logo (menu, footer, particle animation), optional separate particle logo, **Ala nelle intestazioni** (the wing next to page titles and in the home quote) | Empty = built-in files. SVG or transparent PNG. Read from `GET /api/v2/branding/`. |
+| **Reindirizzamenti** (Wagtail) | Old address → new page or address | Served by the frontend (`server/middleware/cms-redirects.ts`, list from `GET /api/v2/redirects/`, refreshed every minute), in every language. Wagtail adds one by itself when a published page's slug changes. Use it for old WordPress addresses at go-live. |
 | **Team** | The people on `/azienda/team`: name, photo, role and description (with optional English/French versions), **Visibile** switch, order (drag to reorder) | Read from `GET /api/v2/team/`. **While the list is empty the page shows the built-in example team** from `app/data/team.ts`. |
 | **Chatbot** | On/off, window title, welcome text, suggested questions | The answers themselves are in **Snippets → Voci chatbot**. |
 | **Tema** | Primary/background/accent/text colours, fonts, base size, type scale, corner radius, shadow, logo | Applied in the browser by `plugins/theme.client.ts` as CSS variables. Saving keeps one undo step. |
 
+**Chatbot (how it works and how to improve it):** it only ever sends answers written in **Snippets → Voci chatbot**, picking the entry whose questions are most similar to the visitor's (sentence embeddings, `paraphrase-multilingual-MiniLM-L12-v2`, so Italian, English and French questions all match the Italian entries). Below `CHATBOT_THRESHOLD` similarity, or when two entries are too close (`CHATBOT_MARGIN`), it sends the fallback entry. The widget is `app/components/chat/AiChat.vue` (posts to `/api/v2/chatbot/ask/` with the visitor's language).
+- Answers in English/French: fill **Risposta (EN)/(FR)** on each entry (`manage.py translate_settings` pre-fills them with the translation model; review them). Empty = Italian answer.
+- **Snippets → Domande al chatbot**: what visitors asked (text only, kept 180 days), the entry used and the similarity. Filter **Risposto: No** to see what is missing, then add those phrasings to an entry or create a new one.
+- Thresholds from data: `manage.py evaluate_chatbot` (leave-one-out on the entries' own questions, also in English/French when the translation models are installed) prints accuracy and, per threshold, answered/correct, with a recommended `CHATBOT_THRESHOLD`; put it in `.env` and restart. Compare models with `--models a,b`.
+- Model on disk: `manage.py setup_chatbot_model` (models/chatbot/, not in git). Each Gunicorn worker loads its own copy (~0.5 GB with the multilingual model). Visitors are limited to 20 questions a minute.
+
 **Snippets → Voci chatbot:** each entry has several ways to ask a question (one per line) and one answer. Exactly one entry can be marked as the fallback answer. The bot matches visitor questions to these using a small AI model (`sentence-transformers`, loaded on first use; each Gunicorn worker loads its own copy, so it uses memory).
 
-**Contact requests** (from `/contatti`) are stored in the database as `ContactSubmission`. There are three kinds: contact, application (with CV) and **quote request** ("Richiesta di preventivo": product/solution, type of structure, sites, timing, stored in *Dettagli preventivo*). The "Richiedi un preventivo" buttons on product and solution pages open the form in quote mode with the product already filled in. They are visible in the **Django admin at `/django-admin/`** → Richieste di contatto, **not** in `/cms/`. An email is sent to the addresses in `ADMIN_EMAILS` (see §8).
+**Contact requests** (from `/contatti`) are stored in the database as `ContactSubmission`. There are four kinds: contact, application (with CV), **partnership proposal** and **quote request** ("Richiesta di preventivo": product/solution, type of structure, sites, timing, stored in *Dettagli preventivo*). The "Richiedi un preventivo" buttons on product and solution pages open the form in quote mode with the product already filled in. They are visible in the **Django admin at `/django-admin/`** → Richieste di contatto, **not** in `/cms/`. An email is sent to the addresses in `ADMIN_EMAILS` (see §8).
 
 ---
 
@@ -155,7 +164,7 @@ This is the most important thing to know. Several pages look like CMS pages but 
 
 | URL | Where the content really lives | Status |
 |---|---|---|
-| `/` homepage — hero phrases, quote, demo, "applicativi" | `app/pages/index.vue` (`dashboardConfig`) | **Hard-coded.** The CMS HomePage hero fields exist but the homepage never reads them. Only case studies and the footer come from the CMS. |
+| `/` homepage — demo, "applicativi", explanation section | `app/pages/index.vue` (`dashboardConfig`) | **Hard-coded.** The first screen, hero phrases, quote, case studies, trust strip and footer come from the CMS. |
 | `/soluzioni/<slug>` | CMS (Soluzione pages) | **Editable.** The built-in text in `app/data/contentPages.ts` is only a fallback, shown when a slug has no published Soluzione page. |
 | "Come lavoriamo" steps and the closing "Hai un progetto?" box on solution/product pages | `i18n/messages-catalogue.ts` | Interface text, in IT/EN/FR. |
 | `/monitoraggio/<slug>` | CMS (Argomento monitoraggio pages) | **Editable.** The built-in text in `app/data/monitoring.ts` is only a fallback, shown when a topic has no published page. |
@@ -188,6 +197,17 @@ This is the most important thing to know. Several pages look like CMS pages but 
 **Change the menu:** Impostazioni → Navigazione. Each "Voce di menu" is a top item. Add "Gruppi" to make a dropdown. Link to pages with the page chooser. Changes are item by item: add one entry with "+", drag to reorder, or switch **Visibile** off to hide one — the rest of the menu is untouched.
 
 **Arrange the columns of a dropdown:** each group has **Colonna**. *Automatica* (default) puts the group under the column that is shortest so far, so one long group and two short ones balance out. Choose *Colonna 1/2/3* to fix where a group goes (e.g. Strutture → Colonna 2 to sit under Viabilità); groups in the same column stack in the order of the list. Choosing *Colonna 3* makes that dropdown three columns wide. On phones the dropdown is always one list, in the order of the groups. To move a **link** from one group to another: add it in the new group (pick the same page) and delete it from the old one.
+
+**Translating pages (self-hosted model, no outside service):** on any Italian page, **⋯ → Traduzione automatica (EN, FR)** queues it; within a minute the English/French version holds a **draft** with the translated title, Google title/description, texts, blocks (rich text keeps links and bold) and child items (e.g. glossary terms). Images, links, product choices, numbers and addresses are copied unchanged; the address (slug) stays the same as in Italian. Review and press **Pubblica** — nothing is published automatically. A translation whose English/French page has a draft waiting is skipped. An English/French page that was only a mirror of the Italian one (alias) becomes a real page, still showing the Italian text until its translation is published.
+- **Snippets → Termini da non tradurre**: names kept exactly as written (product titles and the usual brand names are already included).
+- **Snippets → Memoria di traduzione**: every translated text. Correct one and tick **Corretta a mano**: it is reused everywhere that text appears.
+- **Snippets → Traduzioni richieste**: status and outcome of each request.
+- Many pages at once: `python manage.py translate_pages --all --dry-run` (count) then without `--dry-run`; menu and team labels still empty in English/French: `python manage.py translate_settings`.
+- How it works: Helsinki-NLP Opus-MT (`opus-mt-it-en`, `opus-mt-it-fr`, CC-BY 4.0) converted to CTranslate2 int8 by `manage.py setup_translation_models` into `TRANSLATION_MODEL_DIR` (default `models/mt`, not in git); run by `manage.py run_translation_jobs` every minute from cron (`deploy/translation.cron`), so the web workers never load it. Text handling (sentence splitting, rich text, protected names with placeholder retry) is in `translation/text.py`; quality is measured with `manage.py evaluate_translation` against the site's own human-translated interface texts (`translation/eval/interface.json`, chrF/BLEU via sacrebleu).
+
+**Apply the requested corrections once:** `python manage.py apply_site_corrections [--dry-run]` puts the form on Diventa partner and Invia il CV (replacing the box that sent visitors to /contatti), adds LinkedIn and Facebook to the footer, and renames Gallerie to Tunnel (`/monitoraggio/tunnel`, menu label, redirect from the old address). Running it again changes nothing.
+
+**Demo on the homepage:** each demo records its event when it ends (traffic flowing again, water back below the threshold…), and the Angel BPM window waits up to 90 s for it. Demo ids no longer need HTTPS (`utils/makeId.ts`): on plain `http://` the browser has no `crypto.randomUUID`, which used to drop every event.
 
 **Buttons on a "Prodotto in evidenza" box:** under **Pulsanti** press "+" for each button: write the text, then choose a page of the site, *or* a PDF from Documenti (upload it there first, or straight from the chooser), *or* type an address. *Aspetto* picks outline or red. Drag to reorder. The old "Link alternativo" still works but holds one link only.
 
