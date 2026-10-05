@@ -60,6 +60,7 @@ COOKIE = """
 <ul>
 <li><b>ax-blog-seen</b> (memoria del browser): ricorda quali news hai già visto, per il pallino nel menu. Resta nel tuo browser finché non la cancelli; non viene inviata a noi.</li>
 <li><b>alarms</b> (memoria del browser): gli eventi della demo interattiva in homepage. Resta nel tuo browser; il pulsante "Reset" della demo la svuota.</li>
+<li><b>ax-chat-hint-seen, ax-chat-hint-off</b> (memoria della scheda): le pagine in cui il chatbot ha già proposto un suggerimento e, se premi "No grazie", che non deve proporne altri. Si cancellano da sole quando chiudi la scheda.</li>
 <li><b>sessionid, csrftoken</b> (cookie tecnici): solo per chi accede all'area riservata di gestione del sito (/cms/); servono a mantenere l'accesso e a proteggere i moduli.</li>
 </ul>
 <h2>Video</h2>

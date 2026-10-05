@@ -296,12 +296,48 @@ class ChatbotSettings(BaseSiteSetting):
         help_text="Mostrate come pulsanti cliccabili all'apertura della chat.",
     )
 
+    # Page suggestions: a small bubble above the chat button, after a while
+    # on a page, proposing questions about that page (chatbot/hints.py).
+    hints_enabled = models.BooleanField(
+        default=True, verbose_name="Suggerimenti sulla pagina",
+        help_text="Dopo qualche secondo su una pagina, una nuvoletta sopra il pulsante della chat propone "
+                  "domande su quella pagina. Al massimo una volta per pagina; chi preme \"No grazie\" non la "
+                  "rivede per tutta la visita.",
+    )
+    hint_delay = models.PositiveSmallIntegerField(
+        default=20, verbose_name="Dopo quanti secondi",
+        help_text="Tempo sulla pagina prima che compaia la nuvoletta (minimo 5).",
+    )
+    hint_text_it = models.CharField(
+        max_length=160, blank=True, default="Vuoi saperne di più su {title}?",
+        verbose_name="Testo della nuvoletta (IT)",
+        help_text="{title} = il nome della pagina. Sulle pagine senza nome (homepage, elenchi) si usa un testo generico.",
+    )
+    hint_text_en = models.CharField(max_length=160, blank=True, default="Would you like to know more about {title}?",
+                                    verbose_name="Testo della nuvoletta (EN)")
+    hint_text_fr = models.CharField(max_length=160, blank=True, default="Vous voulez en savoir plus sur {title} ?",
+                                    verbose_name="Testo della nuvoletta (FR)")
+    hint_excluded = models.TextField(
+        blank=True, default="/contatti\n/privacy-policy\n/cookie-policy",
+        verbose_name="Pagine senza nuvoletta",
+        help_text="Un indirizzo per riga (anche l'inizio di un indirizzo, es. /azienda). Vale in tutte le lingue.",
+    )
+
     panels = [
         FieldPanel("enabled"),
         FieldPanel("title"),
         FieldPanel("welcome_message"),
         FieldPanel("placeholder"),
         FieldPanel("suggestions"),
+        MultiFieldPanel([
+            FieldPanel("hints_enabled"),
+            FieldPanel("hint_delay"),
+            FieldPanel("hint_text_it"),
+            FieldPanel("hint_text_en"),
+            FieldPanel("hint_text_fr"),
+            FieldPanel("hint_excluded"),
+        ], heading="Suggerimenti sulla pagina",
+           help_text="Testi e domande su misura per una pagina: Snippets → Suggerimenti del chatbot."),
     ]
 
     class Meta:

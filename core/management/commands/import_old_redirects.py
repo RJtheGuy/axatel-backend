@@ -61,12 +61,16 @@ RULES = [
     (r"^/author/.*$", "/azienda/chi-siamo", "alta", "pagina autore di WordPress"),
     (r"^/tag/(frana|monitoraggiofrane|colatadetritica|fadalto|cadore|cortina)$", "/monitoraggio/frane", "media", "tag"),
     (r"^/tag/fiumi$", "/monitoraggio/fiumi", "media", "tag"),
-    (r"^/tag/(strade|anas)$", "/monitoraggio/traffico", "media", "tag"),
+    (r"^/tag/anas$", "/casi", "media", "tag dei progetti ANAS → casi di successo"),
+    (r"^/tag/strade$", "/monitoraggio/traffico", "media", "tag"),
     (r"^/tag/citta$", "/monitoraggio", "media", "tag"),
     (r"^/tag/control-room$", "/soluzioni/control-room", "media", "tag"),
-    (r"^/tag/(lorawan|iot|nfc)$", "/soluzioni/lorawan", "media", "tag"),
+    (r"^/tag/(lorawan|iot)$", "/soluzioni/lorawan", "media", "tag"),
+    (r"^/tag/nfc$", "/soluzioni/sensori", "media", "tag"),
     (r"^/tag/ingegneria$", "/soluzioni/progettazione", "media", "tag"),
-    (r"^/tag/impianti$", "/soluzioni/plc", "media", "tag"),
+    (r"^/tag/impianti$", "/monitoraggio/tunnel", "media", "tag: gallerie e impianti tecnologici"),
+    (r"^/prodotto/telecamera-", "/soluzioni/telecamere-intelligenti", "media", "telecamera → Telecamere intelligenti"),
+    (r"^/prodotto/(micro-|mini-)?gateway-", "/soluzioni/lorawan", "media", "gateway → LoRaWAN"),
     (r"^/tag/.*$", "/casi", "bassa", "tag degli articoli"),
     (r"^/(category|categoria)/.*$", "/news", "bassa", "categoria degli articoli"),
     (r"^/(feed|comments/feed)$", "/feed.xml", "alta", "feed RSS"),
@@ -78,7 +82,7 @@ PRODUCT_HINTS = [
     (r"river", "angel-river"),
     (r"bridge", "angel-bridge"),
     (r"clinometro|estensimetr|barra-estensimetrica|paramassi|distacco", "geo-angel"),
-    (r"semaforic|lanterna|telecamera-.*traffico", "traffic-alert"),
+    (r"semaforic|lanterna", "traffic-alert"),
     (r"guard-rail|segnaletica|sos-angel-road", "angel-road-site"),
 ]
 STOP = {"di", "da", "a", "e", "il", "la", "lo", "per", "con", "in", "del", "della", "lorawan", "sensore",
@@ -161,12 +165,19 @@ class Command(BaseCommand):
                 found.append(path)
         return found
 
-    def site_pages(self):
+    def site_pages(self, include_drafts=False):
+        """Italian pages by address. Live ones are redirect targets; with
+        include_drafts, also the addresses that must never be redirected
+        (a draft such as /privacy-policy will be published there)."""
         from wagtail.models import Page
 
         pages = {}
-        for page in Page.objects.live().filter(locale__language_code="it", depth__gt=2).specific():
-            path = normalise(page.get_url_parts()[2] if page.get_url_parts() else page.url_path)
+        query = Page.objects.filter(locale__language_code="it", depth__gt=2)
+        if not include_drafts:
+            query = query.live()
+        for page in query.specific():
+            parts = page.get_url_parts()
+            path = normalise(parts[2] if parts and parts[2] else "/" + page.url_path.split("/", 2)[-1])
             pages[path] = page
         return pages
 
@@ -182,7 +193,7 @@ class Command(BaseCommand):
 
     def propose_one(self, old, pages, documents):
         """→ (target, confidence, note)"""
-        if old in pages or old in FRONTEND_ROUTES:
+        if old in self.taken or old in FRONTEND_ROUTES:
             return old, "stesso indirizzo", "esiste già sul nuovo sito: nessun reindirizzamento"
         if old.startswith("/wp-content/"):
             stem = Path(old).stem.lower()
@@ -221,6 +232,7 @@ class Command(BaseCommand):
     def propose(self, options):
         olds = self.old_addresses(options)
         pages = self.site_pages()
+        self.taken = self.site_pages(include_drafts=True)
         documents = self.documents()
         rows = []
         for old in olds:
@@ -258,6 +270,7 @@ class Command(BaseCommand):
         from wagtail.models import Page
 
         pages = self.site_pages()
+        taken = self.site_pages(include_drafts=True)
         created = updated = skipped = 0
         with open(path, newline="", encoding="utf-8-sig") as handle:
             sample = handle.read(2048)
@@ -275,6 +288,10 @@ class Command(BaseCommand):
                 if target.startswith("/"):
                     target = normalise(target)
                 if target == old:
+                    skipped += 1
+                    continue
+                if old in taken or old in FRONTEND_ROUTES:
+                    self.stdout.write(f"  ! {old} is a page of the new site (published or draft): never redirected")
                     skipped += 1
                     continue
                 page = pages.get(target) if target.startswith("/") else None

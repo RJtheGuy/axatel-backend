@@ -71,6 +71,7 @@ class SiteAnswer:
     texts: dict = field(default_factory=dict)  # language → answer text
     link: str = ""  # Italian path; the widget adds /en or /fr
     titles: dict = field(default_factory=dict)  # language → page title (for evaluate_chatbot)
+    labels: dict = field(default_factory=dict)  # language → the question as written (FAQ), for page hints
 
     def answer_in(self, language: str) -> str:
         return (self.texts.get(language) or "").strip() or self.texts.get("it", "")
@@ -289,11 +290,14 @@ def _faqs() -> list[SiteAnswer]:
         for position, (question, answer) in enumerate(italian):
             texts = {"it": _plain(answer)}
             questions = [question]
+            labels = {"it": _plain(question)}
             for language, items in translated.items():
                 if len(items) == len(italian):
                     texts[language] = _plain(items[position][1])
                     questions.append(items[position][0])
-            out.append(SiteAnswer(f"faq:{page.pk}:{position}", "faq", f"FAQ: {question[:80]}", questions, texts, _path(page)))
+                    labels[language] = _plain(items[position][0])
+            out.append(SiteAnswer(f"faq:{page.pk}:{position}", "faq", f"FAQ: {question[:80]}", questions, texts,
+                                  _path(page), labels=labels))
     return out
 
 

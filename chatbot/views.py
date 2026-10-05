@@ -26,9 +26,10 @@ NOT_READY = {
 }
 
 
-def _log(question, language, meta):
+def _log(question, language, meta, from_hint=False):
     try:
         ChatbotQuestion.objects.create(
+            from_hint=from_hint,
             question=question[:300], language=language,
             entry_id=meta.get("entry_id"), source=(meta.get("source") or "")[:200],
             score=meta.get("best_score", 0) or 0,
@@ -68,15 +69,30 @@ def chat(request):
         if count > RATE_LIMIT:
             return JsonResponse({"error": "Troppe domande in poco tempo: riprova tra un minuto."}, status=429)
 
-        answer, meta = engine.answer_with_scores(query)
-        chosen = engine.get_answer(meta.get("answer_key")) if meta.get("answer_key") else None
+        # A question picked in the page suggestion carries the key of its
+        # answer (chatbot/hints.py): that exact answer, no guessing.
+        key = str(data.get("key") or "")[:100]
+        from_hint = bool(data.get("hint"))
+        chosen = None
+        if key:
+            engine._ensure_loaded()
+            chosen = engine.get_answer(key)
+        if chosen is not None:
+            answer, meta = chosen.answer_in("it"), {
+                "best_score": 1.0, "margin": 0.0, "used_fallback": False, "answer_key": chosen.key,
+                "entry_id": getattr(chosen, "entry_id", None),
+                "source": "" if chosen.kind == "entry" else chosen.label, "link": chosen.link,
+            }
+        else:
+            answer, meta = engine.answer_with_scores(query)
+            chosen = engine.get_answer(meta.get("answer_key")) if meta.get("answer_key") else None
         if chosen is not None:
             response = chosen.answer_in(language)
         else:
             entry = ChatbotEntry.objects.filter(pk=meta.get("entry_id")).first() if meta.get("entry_id") else None
             response = entry.answer_in(language) if entry else (answer or engine._fallback or NOT_READY[language])
         if not request.headers.get("X-Smoke-Test"):
-            _log(query, language, meta)
+            _log(query, language, meta, from_hint)
         # link: the page the answer comes from (Italian path; the widget adds /en or /fr).
         return JsonResponse({"response": response, "link": meta.get("link") or ""})
     except json.JSONDecodeError:
@@ -84,3 +100,19 @@ def chat(request):
     except Exception:
         logger.exception("Chatbot failed to answer")
         return JsonResponse({"error": "Il chatbot non è disponibile in questo momento."}, status=500)
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def hint(request):
+    """The page suggestion for the chat bubble (chatbot/hints.py)."""
+    from .hints import build_hint
+
+    language = request.GET.get("locale") if request.GET.get("locale") in ("it", "en", "fr") else "it"
+    try:
+        return JsonResponse(build_hint(request.GET.get("path", "/"), language))
+    except Exception:
+        logger.exception("Chatbot hint failed")
+        return JsonResponse({"enabled": False})
+

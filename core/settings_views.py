@@ -201,9 +201,20 @@ class RedirectsView(APIView):
     def get(self, request):
         from wagtail.contrib.redirects.models import Redirect
 
+        from wagtail.models import Page
+
         site = Site.find_for_request(request)
+        # A redirect never hides a page that exists (e.g. an old /privacy-policy
+        # redirect once the new Privacy policy page is published there).
+        pages = {
+            "/" + (page.url_path.split("/", 2)[-1] if page.url_path.count("/") > 1 else "")
+            for page in Page.objects.live().filter(depth__gt=1).only("url_path")
+        }
+        pages = {path.rstrip("/") or "/" for path in pages}
         rows = []
         for redirect in Redirect.objects.filter(models_q_site(site)).select_related("redirect_page"):
+            if (redirect.old_path.rstrip("/") or "/") in pages:
+                continue
             target = redirect.link
             if redirect.redirect_page_id:
                 page = redirect.redirect_page.specific

@@ -58,9 +58,10 @@ class ContactSubmitView(APIView):
         email = (data.get("email") or "").strip()
         language = data.get("locale") if data.get("locale") in ("it", "en", "fr") else "it"
 
-        if not name or not email:
+        phone = (data.get("phone") or "").strip()
+        if not name or not (email or phone):
             return Response(
-                {"detail": "Nome ed email sono obbligatori."},
+                {"detail": "Inserisci il nome e almeno un recapito: e-mail o telefono."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
  
@@ -90,7 +91,7 @@ class ContactSubmitView(APIView):
             details=details,
             company=(data.get("company") or "").strip(),
             email=email,
-            phone=(data.get("phone") or "").strip(),
+            phone=phone,
             interests=interests,
             message=message,
             attachment=attachment,

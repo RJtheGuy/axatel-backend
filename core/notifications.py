@@ -76,7 +76,7 @@ def _rows(submission) -> list[tuple[str, str]]:
         ("Tipo", submission.get_submission_type_display()),
         ("Nome", submission.name),
         ("Azienda", submission.company or "—"),
-        ("E-mail", submission.email),
+        ("E-mail", submission.email or "—"),
         ("Telefono", submission.phone or "—"),
         ("Lingua del sito", (submission.language or "it").upper()),
     ]
@@ -101,7 +101,8 @@ def build_notification(submission, recipients, attach=True) -> EmailMultiAlterna
 
     text = "\n".join(f"{label}: {value}" for label, value in rows)
     text += f"\n\nMessaggio:\n{message}\n"
-    text += "\nRispondi a questa e-mail per scrivere direttamente a chi ha inviato la richiesta.\n"
+    text += ("\nRispondi a questa e-mail per scrivere direttamente a chi ha inviato la richiesta.\n" if submission.email
+             else f"\nNessuna e-mail: richiama al numero {submission.phone}.\n")
     if link:
         text += f"Nel CMS: {link}\n"
 
@@ -118,11 +119,15 @@ def build_notification(submission, recipients, attach=True) -> EmailMultiAlterna
         f"<table style='border-collapse:collapse;width:100%;font-size:14px'>{body_rows}</table>"
         f"<h3 style='margin:20px 0 6px;color:#0b355b;font-size:15px'>Messaggio</h3>"
         f"<p style='white-space:pre-wrap;color:#274e72;font-size:14px;line-height:1.5'>{html.escape(message)}</p>"
-        "<p style='color:#667f97;font-size:12px'>Rispondi a questa e-mail per scrivere direttamente a chi ha inviato la richiesta."
+        "<p style='color:#667f97;font-size:12px'>"
+        + ("Rispondi a questa e-mail per scrivere direttamente a chi ha inviato la richiesta." if submission.email
+           else f"Nessuna e-mail: richiama al numero {html.escape(submission.phone)}.")
         + (f" <a href='{html.escape(link)}'>Apri nel CMS</a>" if link else "")
         + "</p></div>"
     )
-    mail = EmailMultiAlternatives(subject, text, settings.DEFAULT_FROM_EMAIL, recipients, reply_to=[submission.email])
+    # "Reply" writes to the visitor; with only a phone number, call them.
+    mail = EmailMultiAlternatives(subject, text, settings.DEFAULT_FROM_EMAIL, recipients,
+                                  reply_to=[submission.email] if submission.email else None)
     mail.attach_alternative(html_body, "text/html")
     if attach and submission.attachment:
         try:
@@ -159,7 +164,7 @@ def notify(submission) -> bool:
 def confirm(submission) -> bool:
     """Tell the visitor the request arrived (Impostazioni → Notifiche moduli)."""
     config = _settings()
-    if config is None or not config.send_confirmation or not email_configured():
+    if config is None or not config.send_confirmation or not email_configured() or not submission.email:
         return False
     language = submission.language if submission.language in ("it", "en", "fr") else "it"
     template = (getattr(config, f"confirmation_{language}", "") or config.confirmation_it or "").strip()

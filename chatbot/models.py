@@ -104,6 +104,8 @@ class ChatbotQuestion(models.Model):
                               help_text="Pagina da cui è presa la risposta, quando non è una Voce chatbot.")
     score = models.FloatField(default=0, verbose_name="Somiglianza")
     margin = models.FloatField(default=0, verbose_name="Distacco dalla seconda")
+    from_hint = models.BooleanField(default=False, verbose_name="Dalla nuvoletta",
+                                    help_text="Domanda scelta nella nuvoletta di suggerimento della pagina.")
     answered = models.BooleanField(default=False, verbose_name="Risposto",
                                    help_text="No = è stata data la risposta di riserva.")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Quando")
@@ -115,3 +117,51 @@ class ChatbotQuestion(models.Model):
 
     def __str__(self):
         return self.question[:80]
+
+
+class ChatbotHint(models.Model):
+    """Snippets → Suggerimenti del chatbot: the bubble's text and questions
+    for one page, instead of the ones made automatically from the page."""
+
+    path = models.CharField(
+        max_length=200, unique=True, verbose_name="Indirizzo della pagina",
+        help_text="Come appare nel sito in italiano, es. /monitoraggio/frane (vale anche per /en e /fr).",
+    )
+    active = models.BooleanField(default=True, verbose_name="Attivo")
+    text_it = models.CharField(max_length=160, verbose_name="Testo (IT)")
+    text_en = models.CharField(max_length=160, blank=True, verbose_name="Testo (EN)")
+    text_fr = models.CharField(max_length=160, blank=True, verbose_name="Testo (FR)")
+    questions_it = models.TextField(
+        blank=True, verbose_name="Domande proposte (IT)",
+        help_text="Una per riga, al massimo 3. Scrivile come le scriverebbe un visitatore: il chatbot "
+                  "risponde come se le avesse digitate. Vuoto = le domande automatiche della pagina.",
+    )
+    questions_en = models.TextField(blank=True, verbose_name="Domande proposte (EN)")
+    questions_fr = models.TextField(blank=True, verbose_name="Domande proposte (FR)")
+
+    panels = [
+        FieldPanel("path"), FieldPanel("active"),
+        FieldPanel("text_it"), FieldPanel("questions_it"),
+        FieldPanel("text_en"), FieldPanel("questions_en"),
+        FieldPanel("text_fr"), FieldPanel("questions_fr"),
+    ]
+
+    class Meta:
+        verbose_name = "Suggerimento del chatbot"
+        verbose_name_plural = "Suggerimenti del chatbot"
+        ordering = ["path"]
+
+    def __str__(self):
+        return self.path
+
+    def save(self, *args, **kwargs):
+        self.path = "/" + self.path.strip().strip("/") if self.path.strip("/ ") else "/"
+        super().save(*args, **kwargs)
+
+    def text_in(self, language: str) -> str:
+        return (getattr(self, f"text_{language}", "") or "").strip() or self.text_it
+
+    def questions_in(self, language: str) -> list:
+        raw = (getattr(self, f"questions_{language}", "") or "").strip() or (
+            self.questions_it if language == "it" else "")
+        return [line.strip() for line in raw.splitlines() if line.strip()][:3]

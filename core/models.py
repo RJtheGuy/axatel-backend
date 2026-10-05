@@ -165,7 +165,8 @@ class ContactSubmission(models.Model):
     name = models.CharField(max_length=150)
     submission_type = models.CharField(max_length=20, choices=CONTACT_TYPES, default="contact")
     company = models.CharField(max_length=150, blank=True)
-    email = models.EmailField()
+    # E-mail or phone: the site form asks for at least one of the two.
+    email = models.EmailField(blank=True)
     phone = models.CharField(max_length=40, blank=True)
     interests = models.JSONField(default=list, blank=True)
     message = models.TextField(blank=True)
