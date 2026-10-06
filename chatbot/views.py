@@ -26,6 +26,32 @@ NOT_READY = {
 }
 
 
+SPECIAL_LABELS = {"unclear": "Domanda non chiara", "greeting": "Saluto", "thanks": "Ringraziamento"}
+
+
+def _special_reply(kind, language):
+    """Greeting, thanks or "not understood" (chatbot/understanding.py): the
+    texts of Impostazioni → Chatbot when filled in, else the built-in ones."""
+    from wagtail.models import Site
+
+    from core.site_settings import ChatbotSettings
+
+    from .understanding import REPLIES
+
+    text = ""
+    try:
+        site = Site.objects.filter(is_default_site=True).first() or Site.objects.first()
+        config = ChatbotSettings.for_site(site) if site else None
+        if config is not None:
+            if kind == "unclear":
+                text = getattr(config, f"unclear_reply_{language}", "") or ""
+            elif kind == "greeting" and language == "it":
+                text = config.welcome_message or ""  # the CMS welcome text is Italian
+    except Exception:  # noqa: BLE001 - the built-in text is fine
+        logger.exception("Chatbot settings unavailable")
+    return text.strip() or REPLIES[kind][language]
+
+
 def _log(question, language, meta, from_hint=False):
     try:
         ChatbotQuestion.objects.create(
@@ -86,7 +112,10 @@ def chat(request):
         else:
             answer, meta = engine.answer_with_scores(query)
             chosen = engine.get_answer(meta.get("answer_key")) if meta.get("answer_key") else None
-        if chosen is not None:
+        if meta.get("special"):
+            response = _special_reply(meta["special"], language)
+            meta["source"] = SPECIAL_LABELS[meta["special"]]
+        elif chosen is not None:
             response = chosen.answer_in(language)
         else:
             entry = ChatbotEntry.objects.filter(pk=meta.get("entry_id")).first() if meta.get("entry_id") else None

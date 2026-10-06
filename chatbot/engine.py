@@ -22,6 +22,7 @@ from django.conf import settings
 from django.db.models import Max
 
 from .models import ChatbotEntry
+from .understanding import Vocabulary, classify, words
 
 # The model is fetched once at deploy time (manage.py setup_chatbot_model)
 # into models/chatbot/; it used to be downloaded on the first question into
@@ -86,6 +87,8 @@ class ChatbotEngine:
         self._site_version = None
         self._site_checked = 0.0
         self._vectors = {}        # normalised question → embedding (kept across rebuilds)
+        self._vocabulary = None   # every word of the questions and answers (understanding.py)
+        self._known = set()       # the example questions, as plain words
 
     @staticmethod
     def _normalize_text(value: str) -> str:
@@ -170,6 +173,16 @@ class ChatbotEngine:
                 print(f"[Chatbot] Site knowledge skipped: {error}")
 
         self._questions, self._owners, self._answers = questions, owners, answers
+        # What the chatbot can talk about, in all three languages: used to
+        # recognise "uff", "boh" or "asdfgh" before any matching.
+        texts = list(questions)
+        for answer in answers.values():
+            texts.append(answer.label)
+            for language in ("it", "en", "fr"):
+                texts.append(answer.answer_in(language))
+            texts += list(getattr(answer, "titles", {}).values()) + list(getattr(answer, "labels", {}).values())
+        self._vocabulary = Vocabulary(texts)
+        self._known = {" ".join(words(q)) for q in questions}
         self._manual_mask = np.array(manual, dtype=bool)
         if not questions:
             self._embeddings = None
@@ -189,7 +202,10 @@ class ChatbotEngine:
     # -- answering -----------------------------------------------------------
     def answer(self, query: str) -> str:
         """Best matching answer text (Italian), or the fallback."""
-        text, _ = self.answer_with_scores(query)
+        text, meta = self.answer_with_scores(query)
+        if meta.get("special"):
+            from .understanding import REPLIES
+            return REPLIES[meta["special"]]["it"]
         return text
 
     def get_answer(self, key):
@@ -222,10 +238,19 @@ class ChatbotEngine:
                 "entry_id": self._fallback_id, "answer_key": None, "source": "", "link": "",
             }
 
-        if not query or not self._normalize_text(query):
+        if not (query or "").strip():
             return fallback("empty query")
         if self._embeddings is None:
             return fallback("knowledge base empty")
+
+        # "uff", "ok", "asdfgh", "?!?", "ciao", "grazie": no matching (understanding.py).
+        kind = classify(query, self._vocabulary, self._known)
+        if kind:
+            return "", {
+                "best_score": 0.0, "second_score": 0.0, "margin": 0.0, "matched_question": None,
+                "used_fallback": kind == "unclear", "reason": kind, "special": kind,
+                "entry_id": None, "answer_key": None, "source": "", "link": "",
+            }
 
         vector = self._model.encode([self._normalize_text(query)], convert_to_numpy=True,
                                     normalize_embeddings=True, show_progress_bar=False)[0]

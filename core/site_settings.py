@@ -323,6 +323,29 @@ class ChatbotSettings(BaseSiteSetting):
         help_text="Un indirizzo per riga (anche l'inizio di un indirizzo, es. /azienda). Vale in tutte le lingue.",
     )
 
+    # Reply to "uff", "boh", "asdfgh" or one unknown word (chatbot/understanding.py).
+    unclear_reply_it = models.TextField(
+        blank=True,
+        default="Non ho capito la domanda. Puoi scriverla con qualche parola in più? "
+                "Per esempio: «Come monitorate le frane?»",
+        verbose_name="Risposta a una domanda non chiara (IT)",
+        help_text="Per messaggi senza senso o troppo vaghi (\"uff\", \"ok\", lettere a caso, una parola che il "
+                  "chatbot non conosce). Vuoto = testo predefinito. Li trovi in Domande dei visitatori come "
+                  "\"Domanda non chiara\".",
+    )
+    unclear_reply_en = models.TextField(
+        blank=True,
+        default="I didn't understand the question. Could you write it with a few more words? "
+                "For example: \"How do you monitor landslides?\"",
+        verbose_name="Risposta a una domanda non chiara (EN)",
+    )
+    unclear_reply_fr = models.TextField(
+        blank=True,
+        default="Je n'ai pas compris la question. Pouvez-vous l'écrire avec quelques mots de plus ? "
+                "Par exemple : « Comment surveillez-vous les glissements de terrain ? »",
+        verbose_name="Risposta a una domanda non chiara (FR)",
+    )
+
     panels = [
         FieldPanel("enabled"),
         FieldPanel("title"),
@@ -338,6 +361,13 @@ class ChatbotSettings(BaseSiteSetting):
             FieldPanel("hint_excluded"),
         ], heading="Suggerimenti sulla pagina",
            help_text="Testi e domande su misura per una pagina: Snippets → Suggerimenti del chatbot."),
+        MultiFieldPanel([
+            FieldPanel("unclear_reply_it"),
+            FieldPanel("unclear_reply_en"),
+            FieldPanel("unclear_reply_fr"),
+        ], heading="Domande non chiare",
+           help_text="A un saluto (\"ciao\") il chatbot risponde con il messaggio di benvenuto; a un "
+                     "ringraziamento con \"Prego!\"."),
     ]
 
     class Meta:
