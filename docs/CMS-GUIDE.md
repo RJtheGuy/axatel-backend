@@ -83,8 +83,8 @@ All page types have the **Promote** tab (SEO title, meta description, social ima
 | Indice Monitoraggio | `monitoring.MonitoringIndexPage` | Home | Intro (blocks) | `pages/monitoraggio/index.vue` |
 | Argomento monitoraggio | `monitoring.MonitoringPage` | Indice Monitoraggio | Emoji icon, card text, category (Ambiente / Viabilità / Strutture), cover image, **Riquadro bianco** on/off (off = picture sits on the page), tags, blocks. **Unpublish to hide a topic**: its page, card and sitemap entry disappear (the built-in text is used only while the CMS is unreachable); also switch its menu link's Visibile off | `pages/monitoraggio/[slug].vue` |
 | Indice Casi di successo | `casi.CasiIndexPage` | Home | Intro (plain text) | `pages/casi/index.vue` |
-| Caso di successo | `casi.CasoSuccessoPage` | Indice Casi | Client, category, card description, cover image, tags, body (**rich text**, not blocks) | `pages/casi/[slug].vue` + homepage carousel |
-| Indice News / Articolo News | `blog.BlogIndexPage` / `blog.BlogPost` (the code keeps the name "blog") | Home / Indice News | Author, date, cover, excerpt, blocks, tags | `pages/news/index.vue`, `pages/news/[slug].vue` |
+| Caso di successo | `casi.CasoSuccessoPage` | Indice Casi | Client, category, *Data del progetto*, card description, cover image, tags, body (**rich text**, not blocks) | `pages/casi/[slug].vue` + homepage carousel |
+| Indice News / Articolo News | `blog.BlogIndexPage` / `blog.BlogPost` (the code keeps the name "blog") | Home / Indice News | Index: introduction, *Quando non ci sono news* (title and text of the "Prossimamente" panel shown on /news while no article is published; empty = built-in text, translated). Article: author, date, cover, excerpt, blocks, tags | `pages/news/index.vue`, `pages/news/[slug].vue` |
 | Indice Servizi / Servizio | `services.*` | Home / Indice Servizi | Emoji, card text, blocks, Schema.org type | `pages/servizi/index.vue`, `pages/[area]/[slug].vue` |
 | Indice Soluzioni / Soluzione | `solutions.*` | Home / Indice Soluzioni | Group (Piattaforme/Sensori/Tecnologie/Servizi), eyebrow, card text, picture, blocks | `pages/soluzioni/index.vue`, `pages/soluzioni/[slug].vue` |
 | Sezione informativa | `home.InfoIndexPage` | Home | Intro (plain text) | `pages/[...slug].vue` (lists its pages) |
@@ -201,7 +201,7 @@ This is the most important thing to know. Several pages look like CMS pages but 
 3. Fill in icon, short description, category, cover image, then add blocks to the body.
 4. **Publish.** "Save draft" alone does not show it on the site.
 
-**Add a case study:** Pages → Home → Casi → Add child page → *Caso di successo*. Fill in client, category, description (card text) and cover image, write the body, publish. It appears on `/casi`, at `/casi/<slug>`, and in the homepage carousel (newest first).
+**Add a case study:** Pages → Home → Casi → Add child page → *Caso di successo*. Fill in client, category, description (card text) and cover image, write the body, publish. It appears on `/casi`, at `/casi/<slug>`, and in the homepage carousel. **Order:** by *Data del progetto* (when the project or event took place), most recent first; cases without a date come after the dated ones, most recently published first. Lists show every case (the API is read 20 at a time).
 
 **Add a new standalone page** (e.g. `/pubblica-amministrazione`): Pages → Home → Add child page → *Pagina generica* → build it with blocks → publish. It's live at `/<slug>/` immediately; no code change is needed. Add it to the menu in Impostazioni → Navigazione.
 

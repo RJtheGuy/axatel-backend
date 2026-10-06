@@ -21,16 +21,34 @@ class BlogIndexPage(SeoMixin, Page):
 
     api_fields = [
         APIField("intro"),
+        APIField("empty_title"),
+        APIField("empty_text"),
     ]
 
     intro = StreamField(
         BODY_BLOCKS, use_json_field=True, blank=True,
         verbose_name="Introduzione blog",
     )
+    # Shown on /news while no article is published yet.
+    empty_title = models.CharField(
+        max_length=120, blank=True, verbose_name="Titolo",
+        help_text="Vuoto = \"Le news arriveranno presto\" (tradotto in EN/FR).",
+    )
+    empty_text = models.TextField(
+        max_length=400, blank=True, verbose_name="Testo",
+        help_text="Vuoto = testo predefinito. Sotto compaiono i pulsanti verso i casi di successo e i contatti.",
+    )
 
     parent_page_types = ["home.HomePage"]
     subpage_types = ["blog.BlogPost"]
-    content_panels = Page.content_panels + [FieldPanel("intro")]
+    content_panels = Page.content_panels + [
+        FieldPanel("intro"),
+        MultiFieldPanel([
+            FieldPanel("empty_title"),
+            FieldPanel("empty_text"),
+        ], heading="Quando non ci sono news",
+           help_text="Il riquadro \"Prossimamente\" mostrato su /news finché non c'è nessun articolo pubblicato."),
+    ]
     promote_panels = SeoMixin.promote_panels
 
     class Meta:

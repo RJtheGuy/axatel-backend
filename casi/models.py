@@ -60,6 +60,7 @@ class CasoSuccessoPage(SeoMixin, Page):
     api_fields = [
         APIField("client"),
         APIField("category"),
+        APIField("event_date"),
         APIField("description"),
         APIField("cover_image", serializer=ImageAPIField()),
         APIField("tags", serializer=TagListField()),
@@ -73,6 +74,12 @@ class CasoSuccessoPage(SeoMixin, Page):
     category = models.CharField(
         max_length=100, blank=True, verbose_name="Categoria",
         help_text="Es. 'Smart Road', 'Gallerie', 'Corporate'",
+    )
+    event_date = models.DateField(
+        null=True, blank=True, verbose_name="Data del progetto",
+        help_text="Quando si è svolto il progetto o l'evento (basta anche il 1° del mese). "
+                  "Nell'elenco e in homepage i casi più recenti compaiono per primi; "
+                  "quelli senza data vengono dopo, nell'ordine di pubblicazione.",
     )
     description = models.TextField(
         max_length=300, blank=True,
@@ -107,6 +114,7 @@ class CasoSuccessoPage(SeoMixin, Page):
         MultiFieldPanel([
             FieldPanel("client"),
             FieldPanel("category"),
+            FieldPanel("event_date"),
             FieldPanel("cover_image"),
             FieldPanel("description"),
         ], heading="📋 Meta caso"),
