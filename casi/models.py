@@ -1,8 +1,12 @@
+import re
+from html import unescape
+
 from django.db import models
+from django.utils.text import Truncator
 from modelcluster.contrib.taggit import ClusterTaggableManager
 from modelcluster.fields import ParentalKey
 from taggit.models import TaggedItemBase
-from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.admin.panels import FieldPanel, FieldRowPanel, MultiFieldPanel
 from wagtail.api import APIField
 from wagtail.fields import RichTextField
 from wagtail.models import Page
@@ -58,15 +62,26 @@ class CasoSuccessoPage(SeoMixin, Page):
     """
 
     api_fields = [
+        APIField("client_label"),
         APIField("client"),
         APIField("category"),
         APIField("event_date"),
         APIField("description"),
+        APIField("card_excerpt"),
+        APIField("show_card_title"),
         APIField("cover_image", serializer=ImageAPIField()),
         APIField("tags", serializer=TagListField()),
         APIField("body"),
     ]
 
+    client_label = models.CharField(
+        max_length=50,
+        blank=True,
+        default="Cliente",
+        verbose_name="Etichetta cliente",
+        help_text="Testo mostrato prima del cliente (es. 'Cliente', 'Committente'). "
+                  "Lascia vuoto per mostrare solo il nome del cliente, senza etichetta.",
+    )
     client = models.CharField(
         max_length=150, blank=True, verbose_name="Cliente",
         help_text="Es. 'Provincia di Belluno · ANAS'",
@@ -85,7 +100,13 @@ class CasoSuccessoPage(SeoMixin, Page):
         max_length=300, blank=True,
         verbose_name="Descrizione (card)",
         help_text="Testo mostrato nella card del carosello. "
+                  "Se vuoto, viene generato automaticamente un estratto del contenuto. "
                   "Usato anche come meta description se il tab Promuovi è vuoto.",
+    )
+    show_card_title = models.BooleanField(
+        default=False,
+        verbose_name="Mostra titolo nella card",
+        help_text="Attiva se l'immagine di copertina non contiene già il titolo.",
     )
     cover_image = models.ForeignKey(
         "wagtailimages.Image",
@@ -112,16 +133,32 @@ class CasoSuccessoPage(SeoMixin, Page):
 
     content_panels = Page.content_panels + [
         MultiFieldPanel([
-            FieldPanel("client"),
+            FieldRowPanel([
+                FieldPanel("client_label", classname="col3"),
+                FieldPanel("client", classname="col9"),
+            ]),
             FieldPanel("category"),
             FieldPanel("event_date"),
             FieldPanel("cover_image"),
             FieldPanel("description"),
+            FieldPanel("show_card_title"),
         ], heading="📋 Meta caso"),
         FieldPanel("body"),
         FieldPanel("tags"),
     ]
     promote_panels = SeoMixin.promote_panels
+
+    @property
+    def card_excerpt(self):
+        """
+        Text for the card: the manual description if present, otherwise
+        an automatic excerpt of the body (~22 words, ending with an ellipsis).
+        """
+        if self.description:
+            return self.description
+        text = re.sub(r"<[^>]+>", " ", self.body or "")  # tags -> space, so headings don't glue to paragraphs
+        text = re.sub(r"\s+", " ", unescape(text)).strip()
+        return Truncator(text).words(22, truncate="…")
 
     def get_meta_description(self):
         return self.search_description or self.description
