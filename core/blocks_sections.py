@@ -70,6 +70,7 @@ class FeatureGridBlock(blocks.StructBlock):
             ("2", "2 per riga"),
             ("3", "3 per riga"),
             ("4", "4 per riga"),
+            ("5", "5 per riga"),
             ("6", "6 per riga"),
         ],
         default="auto", required=False,
