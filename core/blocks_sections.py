@@ -30,7 +30,20 @@ class SolutionCardsBlock(blocks.StructBlock):
 class FeatureItemBlock(blocks.StructBlock):
     icon = ImageChooserBlock(required=False)
     title = ExpandedRichTextBlock(max_length=60, features=INLINE_TEXT_FEATURES)
-    description = ExpandedRichTextBlock(max_length=200, features=INLINE_TEXT_FEATURES)
+    # Optional: the frontend must hide the element when this is empty,
+    # otherwise an empty gap is left under the title.
+    description = ExpandedRichTextBlock(max_length=200, required=False, features=INLINE_TEXT_FEATURES)
+    # How much of the grid row this item takes. "full" = 100% of the width.
+    width = blocks.ChoiceBlock(
+        choices=[
+            ("normal", "Normale (1 colonna)"),
+            ("wide", "Largo (2 colonne)"),
+            ("full", "Intera larghezza (100%)"),
+        ],
+        default="normal", required=False,
+        label="Larghezza",
+        help_text="Su cellulare ogni vantaggio occupa comunque tutta la larghezza.",
+    )
 
     class Meta:
         icon = "success"
@@ -40,6 +53,29 @@ class FeatureItemBlock(blocks.StructBlock):
 class FeatureGridBlock(blocks.StructBlock):
     heading = ExpandedRichTextBlock(max_length=160, required=False, features=INLINE_TEXT_FEATURES)
     subheading = ExpandedRichTextBlock(max_length=250, required=False, features=INLINE_TEXT_FEATURES)
+    # Both switches default to False, so grids already saved keep their
+    # current look until an editor ticks them.
+    center_heading = blocks.BooleanBlock(
+        required=False, default=False,
+        label="Centra titolo e sottotitolo",
+    )
+    center_items = blocks.BooleanBlock(
+        required=False, default=False,
+        label="Centra il contenuto dei vantaggi",
+        help_text="Centra icona, titolo e descrizione di ogni vantaggio.",
+    )
+    columns = blocks.ChoiceBlock(
+        choices=[
+            ("auto", "Automatico"),
+            ("2", "2 per riga"),
+            ("3", "3 per riga"),
+            ("4", "4 per riga"),
+            ("6", "6 per riga"),
+        ],
+        default="auto", required=False,
+        label="Card per riga",
+        help_text="Su tablet e cellulare il numero si riduce da solo per restare leggibile.",
+    )
     features = blocks.ListBlock(FeatureItemBlock())
 
     class Meta:
