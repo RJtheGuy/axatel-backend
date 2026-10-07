@@ -7,6 +7,7 @@ from wagtail.models import Page
 from wagtailseo.models import SeoMixin
  
 from core.blocks import BODY_BLOCKS
+from core.page_meta import CARD_DESCRIPTION_HELP
  
  
 class CardSectionIndexPage(SeoMixin, Page):
@@ -40,9 +41,8 @@ class CardDetailPage(SeoMixin, Page):
     )
     short_description = models.TextField(
         max_length=700, blank=True,
-        help_text="Testo mostrato nella card sull'indice. Usato anche come "
-                  "meta description se non specificata nel tab Promuovi.",
-        verbose_name="Descrizione breve (card)",
+        help_text=CARD_DESCRIPTION_HELP,
+        verbose_name="Descrizione (card)",
     )
     body = StreamField(
         BODY_BLOCKS, use_json_field=True, blank=True,

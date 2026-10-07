@@ -1,11 +1,18 @@
 from django.db import models
+from modelcluster.contrib.taggit import ClusterTaggableManager
+from modelcluster.fields import ParentalKey
+from taggit.models import TaggedItemBase
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.fields import StreamField
 from wagtail.models import Page
 from wagtailseo.models import SeoMixin
 from wagtail.api import APIField
 
+from core.api_blocks import ImageAPIField, TagListField
 from core.blocks import BODY_BLOCKS
+from core.page_meta import (
+    CARD_DESCRIPTION_HELP, category_field, cover_image_field, cover_position_field, show_card_title_field,
+)
 
 
 class ServicesIndexPage(SeoMixin, Page):
@@ -50,7 +57,12 @@ class ServicePage(SeoMixin, Page):
     """
     api_fields = [
         APIField("icon"),
+        APIField("category"),
+        APIField("cover_image", serializer=ImageAPIField()),
+        APIField("cover_position"),
         APIField("short_description"),
+        APIField("show_card_title"),
+        APIField("tags", serializer=TagListField()),
         APIField("body"),
         APIField("schema_service_type"),
     ]
@@ -63,10 +75,14 @@ class ServicePage(SeoMixin, Page):
     )
     short_description = models.TextField(
         max_length=300, blank=True,
-        help_text="Testo mostrato nella card sull'indice servizi. "
-                  "Usato anche come meta description se non specificata nel tab Promuovi.",
-        verbose_name="Descrizione breve (card)",
+        help_text=CARD_DESCRIPTION_HELP,
+        verbose_name="Descrizione (card)",
     )
+    category = category_field()
+    cover_image = cover_image_field()
+    cover_position = cover_position_field()
+    show_card_title = show_card_title_field()
+    tags = ClusterTaggableManager(through="services.ServicePageTag", blank=True)
 
     body = StreamField(
         BODY_BLOCKS, use_json_field=True, blank=True,
@@ -83,12 +99,19 @@ class ServicePage(SeoMixin, Page):
     parent_page_types = ["services.ServicesIndexPage"]
     subpage_types     = []
 
+    # Same "📋 Meta" panel as Monitoraggio, Soluzioni and the informative
+    # pages (core/page_meta.py), tags after the content like on the success stories.
     content_panels = Page.content_panels + [
         MultiFieldPanel([
-            FieldPanel("icon"),
+            FieldPanel("category"),
+            FieldPanel("cover_image"),
+            FieldPanel("cover_position"),
             FieldPanel("short_description"),
-        ], heading="📋 Riepilogo card (mostrato nell'indice)"),
+            FieldPanel("show_card_title"),
+            FieldPanel("icon"),
+        ], heading="📋 Meta"),
         FieldPanel("body"),
+        FieldPanel("tags"),
         MultiFieldPanel(
             [FieldPanel("schema_service_type")],
             heading="🔍 Dati strutturati Schema.org",
@@ -103,3 +126,11 @@ class ServicePage(SeoMixin, Page):
     class Meta:
         verbose_name        = "Servizio"
         verbose_name_plural = "Servizi"
+
+
+class ServicePageTag(TaggedItemBase):
+    content_object = ParentalKey(
+        "services.ServicePage",
+        related_name="tagged_items",
+        on_delete=models.CASCADE,
+    )

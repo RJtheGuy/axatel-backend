@@ -5,8 +5,10 @@ from modelcluster.fields import ParentalKey
 from taggit.models import TaggedItemBase
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.api import APIField
+from wagtail.models import Page
 from core.api_blocks import ImageAPIField, TagListField
 from core.base_pages import CardSectionIndexPage, CardDetailPage
+from core.page_meta import cover_position_field, show_card_title_field
  
  
 class MonitoringIndexPage(CardSectionIndexPage):
@@ -33,6 +35,8 @@ class MonitoringPage(CardDetailPage):
         APIField("icon"),
         APIField("short_description"),
         APIField("image_frame"),
+        APIField("cover_position"),
+        APIField("show_card_title"),
         APIField("body"),
     ]
 
@@ -56,15 +60,24 @@ class MonitoringPage(CardDetailPage):
         help_text="Spento: l'immagine appoggia direttamente sullo sfondo (il bianco del disegno sparisce). "
                   "Acceso: l'immagine sta in un riquadro bianco con ombra.",
     )
+    cover_position = cover_position_field()
+    show_card_title = show_card_title_field()
     tags = ClusterTaggableManager(through=MonitoringPageTag, blank=True)
 
-    content_panels = CardDetailPage.content_panels + [
+    # Same "📋 Meta" panel as Soluzioni, Servizi and the informative pages
+    # (core/page_meta.py), tags after the content like on the success stories.
+    content_panels = Page.content_panels + [
         MultiFieldPanel([
             FieldPanel("category"),
             FieldPanel("cover_image"),
+            FieldPanel("cover_position"),
             FieldPanel("image_frame"),
-            FieldPanel("tags"),
-        ], heading="Meta monitoraggio"),
+            FieldPanel("short_description"),
+            FieldPanel("show_card_title"),
+            FieldPanel("icon"),
+        ], heading="📋 Meta"),
+        FieldPanel("body"),
+        FieldPanel("tags"),
     ]
 
     parent_page_types = ["monitoring.MonitoringIndexPage"]

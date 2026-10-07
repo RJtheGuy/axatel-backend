@@ -81,16 +81,29 @@ All page types have the **Promote** tab (SEO title, meta description, social ima
 | Home Page | `home.HomePage` | Root | **Prima schermata** (kicker, title in three parts, text, two buttons, "Monitoraggio attivo 24/7" on/off — empty = built-in text), rotating hero phrases, hero quote, hero logo, **"Fiducia" panel (client logos, certifications)**, blocks | `pages/index.vue`, `components/dashboard/Citazione.vue` |
 | Pagina generica | `home.FlexPage` | Home, another Pagina generica | Blocks only | `pages/[...slug].vue` (any URL no other page claims) |
 | Indice Monitoraggio | `monitoring.MonitoringIndexPage` | Home | Intro (blocks) | `pages/monitoraggio/index.vue` |
-| Argomento monitoraggio | `monitoring.MonitoringPage` | Indice Monitoraggio | Emoji icon, card text, category (Ambiente / Viabilità / Strutture), cover image, **Riquadro bianco** on/off (off = picture sits on the page), tags, blocks. **Unpublish to hide a topic**: its page, card and sitemap entry disappear (the built-in text is used only while the CMS is unreachable); also switch its menu link's Visibile off | `pages/monitoraggio/[slug].vue` |
+| Argomento monitoraggio | `monitoring.MonitoringPage` | Indice Monitoraggio | **📋 Meta** panel (see below; category = Ambiente / Viabilità / Strutture), **Riquadro bianco** on/off (off = picture sits on the page), emoji icon, blocks, tags. **Unpublish to hide a topic**: its page, card and sitemap entry disappear (the built-in text is used only while the CMS is unreachable); also switch its menu link's Visibile off | `pages/monitoraggio/[slug].vue` |
 | Indice Casi di successo | `casi.CasiIndexPage` | Home | Intro (plain text) | `pages/casi/index.vue` |
 | Caso di successo | `casi.CasoSuccessoPage` | Indice Casi | Client, category, *Data del progetto*, card description, cover image, tags, body (**rich text**, not blocks) | `pages/casi/[slug].vue` + homepage carousel |
 | Indice News / Articolo News | `blog.BlogIndexPage` / `blog.BlogPost` (the code keeps the name "blog") | Home / Indice News | Index: introduction, *Quando non ci sono news* (title and text of the "Prossimamente" panel shown on /news while no article is published; empty = built-in text, translated). Article: author, date, cover, excerpt, blocks, tags | `pages/news/index.vue`, `pages/news/[slug].vue` |
-| Indice Servizi / Servizio | `services.*` | Home / Indice Servizi | Emoji, card text, blocks, Schema.org type | `pages/servizi/index.vue`, `pages/[area]/[slug].vue` |
-| Indice Soluzioni / Soluzione | `solutions.*` | Home / Indice Soluzioni | Group (Piattaforme/Sensori/Tecnologie/Servizi), eyebrow, card text, picture, blocks | `pages/soluzioni/index.vue`, `pages/soluzioni/[slug].vue` |
+| Indice Servizi / Servizio | `services.*` | Home / Indice Servizi | **📋 Meta** panel (see below), emoji, blocks, tags, Schema.org type | `pages/servizi/index.vue`, `pages/[area]/[slug].vue` |
+| Indice Soluzioni / Soluzione | `solutions.*` | Home / Indice Soluzioni | Group (Piattaforme/Sensori/Tecnologie/Servizi), eyebrow, **📋 Meta** panel (see below), blocks, tags | `pages/soluzioni/index.vue`, `pages/soluzioni/[slug].vue` |
 | Sezione informativa | `home.InfoIndexPage` | Home | Intro (plain text) | `pages/[...slug].vue` (lists its pages) |
-| Pagina informativa | `home.InfoPage` | Sezione informativa | Eyebrow, introduction, picture, blocks | `pages/[area]/[slug].vue` → `components/content/InfoPageView.vue` |
+| Pagina informativa | `home.InfoPage` | Sezione informativa | **📋 Meta** panel without the card fields (category, eyebrow, introduction, cover image, *Immagine nella pagina*), blocks, tags | `pages/[area]/[slug].vue` → `components/content/InfoPageView.vue` |
 | Glossario | `home.GlossaryPage` | Sezione informativa (one per section) | Eyebrow, introduction, **terms** (term, definition, other names) | same, as a searchable list |
 | Indice Prodotti / Prodotto | `products.*` | Home / Indice Prodotti | Model code, category, tagline, picture, **specifications** (label + value rows), datasheet (uploaded PDF or link), blocks | `pages/prodotti/index.vue`, `pages/prodotti/[slug].vue` |
+
+### The "📋 Meta" panel (Monitoraggio, Soluzioni, Servizi, Pagine informative)
+
+The same idea as *Meta caso* on the success stories, without client and date (`core/page_meta.py`, frontend `utils/pageMeta.ts`). Every field is optional; an empty field shows nothing.
+
+| Field | What it does |
+|---|---|
+| Categoria | Red label above the text on the page and on the card. On Monitoraggio it is also the area filter (Ambiente / Viabilità / Strutture); on Soluzioni it replaces the menu group in the label; on informative pages it replaces the section name. |
+| Immagine di copertina | Picture of the card (Monitoraggio, Soluzioni, Servizi) and of the page. Cards show it whole, never cropped. |
+| Immagine nella pagina | *Accanto all'introduzione* (default, the look before this panel existed), *Grande, in apertura* (across the column, like a success story) or *Non mostrarla nella pagina* (card only). |
+| Descrizione (card) | Card text; also the Google description when the Promote tab is empty. |
+| Mostra titolo nella card | Switch off when the picture already contains the title (the title stays for screen readers and Google). A card without a picture always shows its title. Not on informative pages (no picture cards). |
+| Tags | "#tag" list under the introduction, like on a success story (Monitoraggio cards show them too). |
 
 ---
 

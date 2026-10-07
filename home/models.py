@@ -1,5 +1,7 @@
 from django.db import models
+from modelcluster.contrib.taggit import ClusterTaggableManager
 from modelcluster.fields import ParentalKey
+from taggit.models import TaggedItemBase
 from rest_framework.fields import Field
 from wagtail import blocks
 from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel
@@ -9,9 +11,10 @@ from wagtail.images.blocks import ImageChooserBlock
 from wagtail.models import Orderable, Page
 from wagtailseo.models import SeoMixin
 
-from core.api_blocks import ImageAPIField
+from core.api_blocks import ImageAPIField, TagListField
 from core.blocks import BODY_BLOCKS
 from core.blocks_solutions import _image
+from core.page_meta import category_field, cover_position_field
 
 
 class TrustLogoBlock(blocks.StructBlock):
@@ -268,9 +271,12 @@ class InfoPage(SeoMixin, Page):
     and a body built from blocks."""
 
     api_fields = [
+        APIField("category"),
         APIField("eyebrow"),
         APIField("introduction"),
         APIField("cover_image", serializer=ImageAPIField()),
+        APIField("cover_position"),
+        APIField("tags", serializer=TagListField()),
         APIField("body"),
     ]
 
@@ -284,20 +290,30 @@ class InfoPage(SeoMixin, Page):
     )
     cover_image = models.ForeignKey(
         "wagtailimages.Image", null=True, blank=True, on_delete=models.SET_NULL,
-        related_name="+", verbose_name="Immagine",
+        related_name="+", verbose_name="Immagine di copertina",
     )
+    category = category_field()
+    cover_position = cover_position_field()
     body = StreamField(BODY_BLOCKS, use_json_field=True, blank=True, verbose_name="Contenuto")
+    tags = ClusterTaggableManager(through="home.InfoPageTag", blank=True)
 
     parent_page_types = ["home.InfoIndexPage"]
     subpage_types = []
 
+    # Same "📋 Meta" panel as Monitoraggio, Soluzioni and Servizi
+    # (core/page_meta.py). These pages have no cards with a picture, so no
+    # "Descrizione (card)" / "Mostra titolo nella card": the introduction
+    # plays that part.
     content_panels = Page.content_panels + [
         MultiFieldPanel([
+            FieldPanel("category"),
             FieldPanel("eyebrow"),
             FieldPanel("introduction"),
             FieldPanel("cover_image"),
-        ], heading="Apertura"),
+            FieldPanel("cover_position"),
+        ], heading="📋 Meta"),
         FieldPanel("body"),
+        FieldPanel("tags"),
     ]
     promote_panels = SeoMixin.promote_panels
 
@@ -307,6 +323,14 @@ class InfoPage(SeoMixin, Page):
     class Meta:
         verbose_name = "Pagina informativa"
         verbose_name_plural = "Pagine informative"
+
+
+class InfoPageTag(TaggedItemBase):
+    content_object = ParentalKey(
+        "home.InfoPage",
+        related_name="tagged_items",
+        on_delete=models.CASCADE,
+    )
 
 
 class GlossaryTermsField(Field):
