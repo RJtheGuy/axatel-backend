@@ -77,6 +77,34 @@ class FeatureGridBlock(blocks.StructBlock):
         label="Card per riga",
         help_text="Su tablet e cellulare il numero si riduce da solo per restare leggibile.",
     )
+    # Layout of the whole section. "auto" = the current look, so grids
+    # already saved don't change until an editor picks something.
+    max_width = blocks.ChoiceBlock(
+        choices=[
+            ("auto", "Predefinita"),
+            ("narrow", "Stretta (720 px)"),
+            ("normal", "Media (1000 px)"),
+            ("wide", "Larga (1280 px)"),
+            ("full", "Intera larghezza disponibile"),
+        ],
+        default="auto", required=False,
+        label="Larghezza della sezione",
+    )
+    padding_y = blocks.ChoiceBlock(
+        choices=[("auto", "Predefinito"), ("none", "Nessuno"), ("small", "Piccolo"), ("large", "Grande")],
+        default="auto", required=False,
+        label="Spazio sopra e sotto",
+    )
+    padding_x = blocks.ChoiceBlock(
+        choices=[("auto", "Predefinito"), ("none", "Nessuno"), ("small", "Piccolo"), ("large", "Grande")],
+        default="auto", required=False,
+        label="Spazio ai lati",
+    )
+    gap = blocks.ChoiceBlock(
+        choices=[("auto", "Predefinita"), ("small", "Piccola"), ("large", "Grande")],
+        default="auto", required=False,
+        label="Distanza tra i vantaggi",
+    )
     features = blocks.ListBlock(FeatureItemBlock())
 
     class Meta:
