@@ -5,7 +5,12 @@ SECTION_VARIANT_CHOICES = [
 ]
 
 
-INLINE_TEXT_FEATURES = ["bold", "italic", "highlight", "link"]
+INLINE_TEXT_FEATURES = [
+    "bold", "italic", "highlight", "link",
+    "color-primary", "color-muted", "color-dark",
+    "font-heading", "font-mono", "size-large",
+]
+
 
 
 
