@@ -39,7 +39,7 @@ class CardDetailPage(SeoMixin, Page):
         verbose_name="Emoji icona",
     )
     short_description = models.TextField(
-        max_length=300, blank=True,
+        max_length=700, blank=True,
         help_text="Testo mostrato nella card sull'indice. Usato anche come "
                   "meta description se non specificata nel tab Promuovi.",
         verbose_name="Descrizione breve (card)",
