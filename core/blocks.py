@@ -1,4 +1,3 @@
-
 from wagtail import blocks
 from wagtail.embeds.blocks import EmbedBlock
 
@@ -6,6 +5,7 @@ from .api_blocks import ImageChooserBlock
 from .api_blocks import DocumentChooserBlock
 from .api_blocks import PageChooserBlock
 from .blocks_additions import StatsBlock, NetworkDiagramBlock
+from .blocks_pagecards import PageCardsBlock
 from .blocks_sections import (
     SolutionCardsBlock,
     FeatureGridBlock,
@@ -144,7 +144,7 @@ class SpacerBlock(blocks.StructBlock):
 
 
 # ── The registry ────────────────────────────────────────────────────────
-# 24 block types, each appearing exactly once. If you add a new block,
+# 25 block types, each appearing exactly once. If you add a new block,
 # add it here ONCE - check this list before pasting, don't just append.
 BODY_BLOCKS = [
     ("hero", HeroBlock()),
@@ -171,6 +171,8 @@ BODY_BLOCKS = [
     ("steps", StepsBlock()),
     ("device_cards", DeviceCardsBlock()),
     ("case_cards", CaseCardsBlock()),
+    # Cards for any page of the site (core/blocks_pagecards.py)
+    ("page_cards", PageCardsBlock()),
     ("faq", FaqBlock()),
     ("contact_form", ContactFormBlock()),
 ]
