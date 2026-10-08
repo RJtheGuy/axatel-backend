@@ -240,6 +240,19 @@ class FooterSettings(BaseSiteSetting):
         verbose_name="Pagina Cookie policy", help_text="Linkata nel footer.",
     )
 
+    # Information notice about cookies (not a consent banner: the site uses
+    # only technical storage). Shown once; "OK" hides it in that browser.
+    cookie_notice_enabled = models.BooleanField(
+        default=True, verbose_name="Mostra l'avviso sui cookie",
+        help_text="Barra informativa in basso alla prima visita, con il link alla Cookie policy e il pulsante OK.",
+    )
+    cookie_notice_it = models.TextField(
+        max_length=300, blank=True, verbose_name="Testo dell'avviso (IT)",
+        help_text="Vuoto = \"Questo sito usa solo cookie tecnici, necessari al suo funzionamento.\"",
+    )
+    cookie_notice_en = models.TextField(max_length=300, blank=True, verbose_name="Testo dell'avviso (EN)")
+    cookie_notice_fr = models.TextField(max_length=300, blank=True, verbose_name="Testo dell'avviso (FR)")
+
     vat_label = models.CharField(max_length=60, blank=True, default="Partita IVA:")
     vat_value = models.CharField(max_length=60, blank=True)
     tax_label = models.CharField(max_length=60, blank=True, default="Codice Fiscale:")
@@ -258,6 +271,14 @@ class FooterSettings(BaseSiteSetting):
             FieldPanel("privacy_page"),
             FieldPanel("cookie_page"),
         ], heading="Pagine legali"),
+        MultiFieldPanel([
+            FieldPanel("cookie_notice_enabled"),
+            FieldPanel("cookie_notice_it"),
+            FieldPanel("cookie_notice_en"),
+            FieldPanel("cookie_notice_fr"),
+        ], heading="Avviso sui cookie",
+           help_text="Informativo: il sito usa solo cookie tecnici, quindi non serve chiedere il consenso. "
+                     "Se in futuro si aggiungono statistiche o pubblicità, serve un vero banner di consenso."),
     ]
 
     class Meta:

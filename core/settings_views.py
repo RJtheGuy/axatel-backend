@@ -111,6 +111,12 @@ class SiteSettingsView(APIView):
                     for kind, page in (("privacy", footer.privacy_page), ("cookie", footer.cookie_page))
                     if page is not None and page.live
                 ],
+                # Cookie information notice; empty text = the site's own
+                # wording in the visitor's language.
+                "cookie_notice": {
+                    "enabled": footer.cookie_notice_enabled,
+                    "text": (getattr(footer, f"cookie_notice_{language}", "") or "").strip(),
+                },
             },
             "branding": {
                 "logo": _file_path(branding.logo),
