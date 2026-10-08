@@ -45,6 +45,7 @@ def _card(page) -> dict:
     return {
         "title": page.title,
         "url": page.url,
+        "kind": page._meta.model_name,  # e.g. "productpage": the card shows product logos uncropped
         "category": category if isinstance(category, str) else "",
         "client": getattr(page, "client", "") or "",  # only case studies have one
         "model_code": getattr(page, "model_code", "") or "",  # only products have one
