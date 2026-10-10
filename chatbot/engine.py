@@ -428,19 +428,25 @@ class ChatbotEngine:
         titles = list((getattr(chosen, "titles", None) or {}).values())
         own_text = " ".join(titles) if titles else self._title(chosen, "it")
         leftover = asked - talk.content_stems(own_text)
-        if not leftover:
+        subject = asked - leftover  # the chosen answer's own subject words ("sensori")
+        if not leftover or not subject:
             return None
-        for score, common, passage in self._rank_passages([vector], query, language)[:40]:
-            if passage.page_id == getattr(chosen, "page_id", None) or score < self.CONTEXT_MIN:
-                continue
-            page = self._answers.get(self._page_answer.get(passage.page_id, ""))
-            if page is None:
-                continue
-            title = " ".join((getattr(page, "titles", None) or {}).values())
-            if (talk.content_stems(title) & leftover and common >= 1
-                    and len(asked & talk.content_stems(f"{passage.search_text} {title}")) >= 2):
-                return passage, score
-        return None
+        # The pages the other word names ("Monitoraggio Frane"); a word found
+        # in many titles ("angel") is not a subject.
+        named = [page_id for page_id, key in self._page_answer.items()
+                 if page_id != getattr(chosen, "page_id", None)
+                 and talk.content_stems(" ".join((getattr(self._answers.get(key), "titles", None) or {}).values()))
+                 & leftover]
+        if not named or len(named) > 3:
+            return None
+        best = None
+        for page_id in named:
+            for score, _, passage in self._rank_passages([vector], query, language, page_id):
+                if subject & talk.content_stems(passage.search_text):  # the paragraph that talks about sensors
+                    if score >= self.CONTEXT_MIN and (best is None or score > best[1]):
+                        best = (passage, score)
+                    break
+        return best
 
     def _word_tie_break(self, query, scores, top_score):
         """Several answers about as close as each other ("monitorate le frane"
