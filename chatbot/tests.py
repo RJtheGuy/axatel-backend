@@ -178,6 +178,22 @@ class ConversationTests(TestCase):
         entry.save()
         self.assertNotEqual(self.ask("Che orari avete?")["answer_key"], f"entry:{entry.pk}")
 
+    def test_answers_about_the_same_page_are_not_rivals(self):
+        entry = ChatbotEntry.objects.create(questions="Monitorate le frane?", answer="Sì, con Geo Angel.")
+        reply = self.ask("monitorate le frane?")
+        self.assertEqual(reply["answer_key"], f"entry:{entry.pk}")
+        self.assertTrue(reply["link"])
+        self.assertIn("more", [c["type"] for c in reply["chips"]])
+
+    def test_topic_list_uses_the_written_category(self):
+        MonitoringPage = type(self.page)
+        page = MonitoringPage.objects.get(pk=self.page.pk)
+        page.category = "Dissesti geologici e frane"
+        page.save_revision().publish()
+        self.engine.warm_up()
+        text = self.engine.get_answer("list:topics").answer_in("it")
+        self.assertIn("Frane (dissesti geologici e frane)", text)
+
     def test_more_words(self):
         from chatbot.conversation import is_more
 

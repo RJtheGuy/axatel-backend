@@ -125,6 +125,7 @@ class ChatbotEngine:
         self._p_matrix = None
         self._passages_done = True
         self._page_answer = {}    # Italian page id → its answer key (topic:12, product:7…)
+        self._group = {}          # answer key → "page:<id>" for answers about the same page
         self._page_vectors = {}   # answer key → average of its question vectors (related pages)
 
     @staticmethod
@@ -285,9 +286,16 @@ class ChatbotEngine:
         # A hand-written entry about a page ("cos'è Angel River?") without a
         # "Pagina collegata" gets that page: its link, "Dimmi di più" and
         # follow-ups then work as for the page's own answer.
-        titled = sorted(((self._normalize_text(a.titles.get("it", "")), a) for a in answers.values()
-                         if a.kind in self.PAGE_KINDS and getattr(a, "titles", None)),
-                        key=lambda t: len(t[0]), reverse=True)
+        names = []
+        for a in answers.values():
+            if a.kind in self.PAGE_KINDS and getattr(a, "titles", None):
+                names.append((self._normalize_text(a.titles.get("it", "")), a))
+                if a.kind == "topic":  # "Monitoraggio frane" is also asked as "le frane"
+                    short = self._normalize_text(re.sub(r"^monitoraggio\s+(di |del |della |dei |delle )?", "",
+                                                        a.titles.get("it", ""), flags=re.I))
+                    if len(short) >= 5:
+                        names.append((short, a))
+        titled = sorted(names, key=lambda t: len(t[0]), reverse=True)
         for answer in answers.values():
             if answer.kind != "entry" or answer.page_id:
                 continue
@@ -296,6 +304,9 @@ class ChatbotEngine:
                 if len(title) >= 4 and any(f" {title} " in q for q in asked):
                     answer.page_id, answer.link, answer.titles = page.page_id, page.link, dict(page.titles)
                     break
+
+        self._group = {key: (f"page:{answer.page_id}" if getattr(answer, "page_id", None) else key)
+                       for key, answer in answers.items()}
 
         # Pages: their answer, the average of their questions (to find related
         # pages) and their text in passages.
@@ -338,7 +349,11 @@ class ChatbotEngine:
             return None, 0.0, 0.0
         order = candidates[np.argsort(scores[candidates])[::-1]]
         best = int(order[0])
-        second = next((int(i) for i in order[1:] if self._owners[i] != self._owners[best]), None)
+        # Answers about the same page (its description, its FAQs, a Voce
+        # chatbot linked to it) are not rivals: the margin is to another page.
+        group = self._group.get(self._owners[best], self._owners[best])
+        second = next((int(i) for i in order[1:]
+                       if self._group.get(self._owners[i], self._owners[i]) != group), None)
         best_score = float(scores[best])
         return best, best_score, best_score - (float(scores[second]) if second is not None else 0.0)
 
@@ -631,8 +646,20 @@ class ChatbotEngine:
                     return passage_answer(passage, score, "passage")
 
         # 5. Two answers equally close: ask which one.
-        ranking = [(k, v) for k, v in self._answer_ranking(vector) if k in self._answers]
-        close = [(k, v) for k, v in ranking[:3] if v >= self.CLARIFY_MIN and ranking[0][1] - v < self.MARGIN]
+        # One button per page: the best answer of each page, and two distinct titles at least.
+        ranking, groups = [], set()
+        for k, v in self._answer_ranking(vector):
+            group = self._group.get(k, k)
+            if k in self._answers and group not in groups:
+                groups.add(group)
+                ranking.append((k, v))
+        close, titles = [], set()
+        for k, v in ranking[:4]:
+            title = self._title(self._answers[k], language).strip().lower()
+            if v >= self.CLARIFY_MIN and ranking[0][1] - v < self.MARGIN and title not in titles:
+                titles.add(title)
+                close.append((k, v))
+        close = close[:3]
         if len(close) >= 2:
             first, second = (self._answers[k] for k, _ in close[:2])
             if self._title(first, language).lower() != self._title(second, language).lower():

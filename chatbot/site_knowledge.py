@@ -193,22 +193,38 @@ def _topics() -> list[SiteAnswer]:
         out.append(SiteAnswer(f"topic:{page.pk}", "topic", f"Monitoraggio: {page.title}", questions, texts, _path(page),
                               {lang: p.title for lang, p in versions.items()}, page_id=page.pk))
         key = re.sub(r"[^a-z]", "", (page.category or "").lower().replace("à", "a")) or "altro"
-        by_area.setdefault(key, []).append({lang: _short_topic(p.title) for lang, p in versions.items()})
+        group = by_area.setdefault(key, {"labels": {}, "names": []})
+        for lang, version in versions.items():
+            if (getattr(version, "category", "") or "").strip():
+                group["labels"].setdefault(lang, version.category.strip())
+        group["names"].append({lang: _short_topic(p.title) for lang, p in versions.items()})
     if by_area:
         texts = {}
         for language in LANGS:
             lines = [TOPICS_INTRO[language]]
-            for key in AREA_ORDER + sorted(k for k in by_area if k not in AREA_ORDER):
+            for key in AREA_ORDER + [k for k in by_area if k not in AREA_ORDER]:
                 if key not in by_area:
                     continue
-                label = AREAS.get(key, {}).get(language) or key.capitalize()
-                names = sorted(_cap(n.get(language) or n["it"]) for n in by_area[key])
-                lines.append(f"• {label}: {', '.join(names)}")
+                group = by_area[key]
+                names = [_cap(n.get(language) or n["it"]) for n in group["names"]]
+                if key in AREAS:  # the three fixed areas: "Ambiente: Alberi, Aria, Fiumi"
+                    lines.append(f"• {AREAS[key][language]}: {', '.join(sorted(names))}")
+                    continue
+                # A category written in the CMS ("Dissesti geologici e frane"),
+                # in the visitor's language when the page is translated.
+                label = group["labels"].get(language) or (group["labels"].get("it") if language == "it" else "")
+                if key == "altro" or not label:
+                    lines += [f"• {name}" for name in names]
+                elif len(names) == 1:
+                    lines.append(f"• {names[0]} ({label[:1].lower() + label[1:] if not label[:2].isupper() else label})")
+                else:
+                    lines.append(f"• {label}: {', '.join(names)}")
             lines.append(TOPICS_OUTRO[language])
             texts[language] = "\n".join(lines)
         index = model.objects.live().filter(locale__language_code="it").first()
         link = _path(index.get_parent()) if index else "/monitoraggio/"
-        out.append(SiteAnswer("list:topics", "list", "Elenco: cosa monitoriamo", TOPIC_LIST_QUESTIONS, texts, link))
+        out.append(SiteAnswer("list:topics", "list", "Elenco: cosa monitoriamo", TOPIC_LIST_QUESTIONS, texts, link,
+                              {"it": "Cosa monitoriamo", "en": "What we monitor", "fr": "Ce que nous surveillons"}))
     return out
 
 
@@ -232,7 +248,8 @@ def _products() -> list[SiteAnswer]:
             texts[language] = f"{PRODUCTS_INTRO[language]} {listed}.\n{PRODUCTS_OUTRO[language]}"
         first = model.objects.live().filter(locale__language_code="it").first()
         link = _path(first.get_parent()) if first else "/prodotti/"
-        out.append(SiteAnswer("list:products", "list", "Elenco: prodotti", PRODUCT_LIST_QUESTIONS, texts, link))
+        out.append(SiteAnswer("list:products", "list", "Elenco: prodotti", PRODUCT_LIST_QUESTIONS, texts, link,
+                              {"it": "Prodotti", "en": "Products", "fr": "Produits"}))
     return out
 
 
