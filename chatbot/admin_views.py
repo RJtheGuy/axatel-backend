@@ -20,6 +20,7 @@ from .models import ChatbotQuestion
 
 KIND_LABELS = dict(ChatbotQuestion._meta.get_field("kind").choices)
 KIND_HELP = {
+    "ai": "Scritta dall'AI con i testi del sito (fonti: vedi sotto).",
     "entry": "Una Voce chatbot scritta a mano.",
     "page": "La descrizione di una pagina del sito (con il paragrafo più vicino alla domanda, se c'è).",
     "passage": "Un paragrafo di una pagina del sito che risponde alla domanda.",
@@ -71,7 +72,10 @@ def test_view(request):
     question = (request.POST.get("question") or "").strip()[:500]
     key = (request.POST.get("key") or "").strip() or None
     if request.method == "POST" and question and not request.POST.get("reset"):
-        reply = build_reply(question, language, context=context, key=key)
+        turns = []
+        for turn in history[-4:]:
+            turns += [{"role": "user", "text": turn.get("question", "")}, {"role": "bot", "text": turn.get("text", "")}]
+        reply = build_reply(question, language, context=context, key=key, history=turns)
         meta = reply.get("meta") or {}
         history.append({
             "question": question,

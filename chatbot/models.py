@@ -129,12 +129,14 @@ class ChatbotQuestion(models.Model):
     answered = models.BooleanField(default=False, verbose_name="Risposto",
                                    help_text="No = è stata data la risposta di riserva.")
     kind = models.CharField(max_length=20, blank=True, choices=[
-        ("entry", "Voce chatbot"), ("page", "Pagina del sito"), ("passage", "Testo di una pagina"),
+        ("ai", "Scritta dall'AI"), ("entry", "Voce chatbot"), ("page", "Pagina del sito"), ("passage", "Testo di una pagina"),
         ("context", "Seguito della conversazione"), ("more", "Dimmi di più"), ("clarify", "Domanda di chiarimento"),
         ("fallback", "Nessuna risposta"), ("greeting", "Saluto"), ("thanks", "Ringraziamento"),
         ("unclear", "Domanda non chiara"),
     ], verbose_name="Come ha risposto")
     answer_key = models.CharField(max_length=60, blank=True, verbose_name="Chiave risposta")
+    answer = models.TextField(blank=True, verbose_name="Risposta data",
+                              help_text="Il testo che il visitatore ha ricevuto.")
     in_context = models.BooleanField(default=False, verbose_name="Durante una conversazione",
                                      help_text="Sì = c'era già una domanda prima, il chatbot ne ha tenuto conto.")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Quando")

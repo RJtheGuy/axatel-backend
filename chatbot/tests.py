@@ -215,6 +215,19 @@ class ConversationTests(TestCase):
         self.assertIn("Sensori georeferenziati", reply["text"])
         self.assertIn(f"entry:{entry.pk}", [c.get("key") for c in reply["chips"]])
 
+    def test_nonsense_during_a_conversation_is_not_a_follow_up(self):
+        first = self.ask("monitorate le frane?")
+        for text in ["ui", "ohoo", "what are you talking about", "di cosa parli?"]:
+            reply = self.ask(text, first["context"])
+            self.assertEqual(reply["kind"], "unclear", text)
+            self.assertEqual(reply["context"]["key"], first["context"]["key"])  # still on frane
+
+    def test_page_words_are_known(self):
+        from chatbot.understanding import classify
+
+        self.engine.warm_up()
+        self.assertIsNone(classify("e gli accelerometri?", self.engine._vocabulary, self.engine._known))
+
     def test_more_words(self):
         from chatbot.conversation import is_more
 
@@ -269,3 +282,97 @@ class ChatbotAdminTests(TestCase):
 
         url = reverse("wagtailsnippets_chatbot_chatbotentry:add") + "?domanda=Avete%20un%20listino%3F"
         self.assertContains(self.client.get(url), "Avete un listino?")
+
+
+class AIReplyTests(TestCase):
+    """chatbot/llm.py: the language model writes the reply from the site's
+    text; without it (no key, error, limit, switched off) the engine answers."""
+
+    def setUp(self):
+        import os
+        from unittest import mock
+
+        from django.core.cache import cache
+
+        cache.clear()
+        ChatbotEntry.objects.create(questions="Dove siete?\nDove si trova la sede?",
+                                    answer="La sede è in Viale del Mercato Nuovo 75, Vicenza.")
+        ChatbotEntry.objects.create(questions="Non lo so", answer="Riserva.", is_fallback=True)
+        self.env = mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key", "CHATBOT_LLM_DAILY_LIMIT": "2"})
+        self.env.start()
+        self.addCleanup(self.env.stop)
+        self.calls = []
+
+    def fake(self, payload=None, error=None):
+        from unittest import mock
+
+        from chatbot import llm
+
+        def call(system, messages):
+            self.calls.append((system, messages))
+            if error:
+                raise llm.LLMUnavailable(error)
+            import json
+            return {"content": [{"type": "text", "text": "```json\n" + json.dumps(payload) + "\n```"}],
+                    "usage": {"input_tokens": 900, "output_tokens": 60}}
+
+        patcher = mock.patch("chatbot.llm._call", side_effect=call)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def post(self, body):
+        import json
+
+        return self.client.post("/api/v2/chatbot/ask/", json.dumps(body), content_type="application/json").json()
+
+    def test_model_writes_the_reply_from_the_sources(self):
+        from chatbot.models import ChatbotQuestion
+
+        self.fake({"answer": "Siamo a **Vicenza**, in Viale del Mercato Nuovo 75.", "sources": [1],
+                   "contact": True, "suggestions": ["Come vi contatto?"]})
+        data = self.post({"message": "dove avete gli uffici?", "locale": "it",
+                          "history": [{"role": "user", "text": "ciao"}, {"role": "bot", "text": "Ciao!"}]})
+        self.assertEqual(data["response"], "Siamo a Vicenza, in Viale del Mercato Nuovo 75.")
+        self.assertIn("Come vi contatto?", [c["label"] for c in data["chips"]])
+        self.assertIn("contact", [c["type"] for c in data["chips"]])
+        system, messages = self.calls[0]
+        self.assertIn("Viale del Mercato Nuovo", system)  # the site's text went in as a source
+        self.assertEqual([m["role"] for m in messages], ["user", "assistant", "user"])
+        logged = ChatbotQuestion.objects.get()
+        self.assertEqual(logged.kind, "ai")
+        self.assertIn("Vicenza", logged.answer)
+
+    def test_engine_answers_when_the_model_fails(self):
+        self.fake(error="HTTP 529: overloaded")
+        data = self.post({"message": "Dove siete?", "locale": "it"})
+        self.assertIn("Viale del Mercato Nuovo", data["response"])
+
+    def test_no_model_for_greetings_or_without_a_key(self):
+        import os
+
+        self.fake({"answer": "x", "sources": []})
+        self.post({"message": "ciao", "locale": "it"})
+        self.assertEqual(self.calls, [])
+        os.environ.pop("ANTHROPIC_API_KEY")
+        data = self.post({"message": "Dove siete?", "locale": "it"})
+        self.assertIn("Viale del Mercato Nuovo", data["response"])
+        self.assertEqual(self.calls, [])
+
+    def test_daily_limit(self):
+        self.fake({"answer": "Risposta AI.", "sources": []})
+        for _ in range(3):
+            data = self.post({"message": "Dove siete?", "locale": "it"})
+        self.assertEqual(len(self.calls), 2)
+        self.assertIn("Viale del Mercato Nuovo", data["response"])
+
+    def test_switched_off_in_the_cms(self):
+        from wagtail.models import Site
+
+        from core.site_settings import ChatbotSettings
+
+        config = ChatbotSettings.for_site(Site.objects.get(is_default_site=True))
+        config.ai_answers = False
+        config.save()
+        self.fake({"answer": "Risposta AI.", "sources": []})
+        self.post({"message": "Dove siete?", "locale": "it"})
+        self.assertEqual(self.calls, [])

@@ -367,6 +367,19 @@ class ChatbotSettings(BaseSiteSetting):
         verbose_name="Risposta a una domanda non chiara (FR)",
     )
 
+    # Replies written by a language model from the site's text (chatbot/llm.py).
+    ai_answers = models.BooleanField(
+        default=True, verbose_name="Risposte scritte dall'AI",
+        help_text="Il chatbot scrive ogni risposta con parole sue, usando solo i testi del sito, e tiene conto "
+                  "di tutta la conversazione. Funziona solo se sul server è configurata la chiave "
+                  "(ANTHROPIC_API_KEY); senza, o se il servizio non risponde, usa le risposte qui sotto.",
+    )
+    ai_instructions = models.TextField(
+        blank=True, max_length=1500, verbose_name="Istruzioni per l'AI",
+        help_text="Facoltative: tono e regole in più, es. \"Dai del lei.\", \"Per l'assistenza tecnica "
+                  "indica assistenza@axatel.it.\" Non serve ripetere che deve usare solo i testi del sito.",
+    )
+
     # How the chatbot talks (chatbot/engine.py respond()).
     page_text_answers = models.BooleanField(
         default=True, verbose_name="Risposte dal testo delle pagine",
@@ -395,6 +408,11 @@ class ChatbotSettings(BaseSiteSetting):
         FieldPanel("welcome_message"),
         FieldPanel("placeholder"),
         FieldPanel("suggestions"),
+        MultiFieldPanel([
+            FieldPanel("ai_answers"),
+            FieldPanel("ai_instructions"),
+        ], heading="AI",
+           help_text="Per vedere come risponde: menu Chatbot → Prova il chatbot."),
         MultiFieldPanel([
             FieldPanel("page_text_answers"),
             FieldPanel("related_pages"),

@@ -80,6 +80,7 @@ def _log(question, language, reply, from_hint=False):
             margin=meta.get("margin") or 0,
             answered=kind not in ("fallback", "unclear"),
             kind=kind[:20], answer_key=key[:60], in_context=bool(meta.get("in_context")),
+            answer=(reply.get("text") or "")[:2000],
         )
         if random.random() < 0.02:  # now and then, forget old questions
             ChatbotQuestion.objects.filter(created_at__lt=timezone.now() - timedelta(days=RETENTION_DAYS)).delete()
@@ -87,8 +88,58 @@ def _log(question, language, reply, from_hint=False):
         logger.exception("Could not log chatbot question")
 
 
-def build_reply(query, language, context=None, key=None, config=None):
-    """The engine's turn plus the texts from the CMS, as the chat receives it.
+# Engine replies that the language model rewrites: everything except the
+# instant ones (greetings, thanks, nonsense, "Dimmi di più", a button with
+# its exact answer).
+AI_KINDS = {"entry", "page", "passage", "context", "clarify", "fallback"}
+
+
+def _ai_reply(query, language, context, history, config, reply):
+    """The engine's reply rewritten by the language model (chatbot/llm.py),
+    or None to keep the engine's reply."""
+    from . import llm
+    from .conversation import TEXTS
+
+    if config is not None and not getattr(config, "ai_answers", True):
+        return None
+    if not llm.configured():
+        return None
+    sources = engine.gather_sources(query, language, context)
+    name = (getattr(config, "title", "") or "").replace("Chiedi a ", "").replace("Chiedi ad ", "").strip() if config else ""
+    try:
+        written = llm.write_reply(query, language, sources, history or [], name=name or "l'assistente",
+                                  extra=getattr(config, "ai_instructions", "") if config is not None else "")
+    except llm.LLMUnavailable as error:
+        logger.warning("Chatbot AI not used: %s", error)
+        reply["meta"]["ai_error"] = str(error)[:200]
+        return None
+    first = written["sources"][0] if written["sources"] else None
+    chips = [{"type": "ask", "label": q} for q in written["suggestions"]]
+    if written["contact"] and getattr(config, "contact_button", True):
+        chips.append({"type": "contact", "label": TEXTS["contact"].get(language, TEXTS["contact"]["it"])})
+    key = (first or {}).get("key") or (context or {}).get("key") or ""
+    return {
+        "text": written["text"],
+        "link": (first or {}).get("link", ""),
+        "link_label": (first or {}).get("title", "").split(" — ")[0],
+        "kind": "ai",
+        "answer_key": key or None,
+        "chips": chips,
+        "context": {"key": key, "shown": []} if key else {},
+        "meta": {
+            **reply.get("meta", {}),
+            "engine_kind": reply["kind"],
+            "sources": [s["title"] for s in written["sources"]],
+            "sources_given": len(sources),
+            "tokens": written["usage"].get("input_tokens", 0) + written["usage"].get("output_tokens", 0),
+        },
+    }
+
+
+def build_reply(query, language, context=None, key=None, config=None, history=None):
+    """The reply as the chat receives it: written by the language model from
+    the site's text when it is configured, otherwise (or if it fails) the
+    engine's own reply plus the texts from the CMS.
     Also used by the CMS test page (chatbot/admin_views.py)."""
     config = config if config is not None else _config()
     options = {}
@@ -99,6 +150,10 @@ def build_reply(query, language, context=None, key=None, config=None):
             "contact": getattr(config, "contact_button", True),
         }
     reply = engine.respond(query, language, context=context, options=options, key=key)
+    if not key and reply["kind"] in AI_KINDS:
+        written = _ai_reply(query, language, context, history, config, reply)
+        if written is not None:
+            reply = written
     kind = reply["kind"]
     if kind in SPECIAL_LABELS:
         reply["text"] = _special_reply(kind, language, config)
@@ -148,7 +203,10 @@ def chat(request):
 
         context = data.get("context") if isinstance(data.get("context"), dict) else None
         key = str(data.get("key") or "")[:100] or None
-        reply = build_reply(query, language, context=context, key=key)
+        # The last turns as the visitor saw them, so the AI follows the conversation.
+        history = [{"role": "bot" if t.get("role") == "bot" else "user", "text": str(t.get("text") or "")[:800]}
+                   for t in (data.get("history") or [])[-8:] if isinstance(t, dict)]
+        reply = build_reply(query, language, context=context, key=key, history=history)
         if not request.headers.get("X-Smoke-Test"):
             _log(query, language, reply, bool(data.get("hint")))
         # link: the page the answer comes from (Italian path; the widget adds /en or /fr).
