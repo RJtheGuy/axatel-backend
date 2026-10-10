@@ -194,6 +194,27 @@ class ConversationTests(TestCase):
         text = self.engine.get_answer("list:topics").answer_in("it")
         self.assertIn("Frane (dissesti geologici e frane)", text)
 
+    def test_subject_word_breaks_a_tie(self):
+        from wagtail.models import Page
+
+        from monitoring.models import MonitoringPage
+
+        Page.get_first_root_node().add_child(instance=MonitoringPage(
+            title="Monitoraggio cantieri", slug="cantieri", short_description="Sicurezza dei cantieri stradali."))
+        self.engine.MARGIN = 0.99  # every answer "too close": only the words decide
+        self.engine.THRESHOLD = 0.0
+        reply = self.ask("monitorate le frane?")
+        self.assertEqual(reply["answer_key"], f"topic:{self.page.pk}")
+
+    def test_question_naming_another_page_gets_its_paragraph(self):
+        entry = ChatbotEntry.objects.create(questions="Che tipo di sensori usate?\nche sensori usate",
+                                            answer="Usiamo sensori di molti tipi.")
+        self.engine.CONTEXT_MIN = 0.0
+        reply = self.ask("che sensori usate per le frane?")
+        self.assertEqual(reply["kind"], "passage")
+        self.assertIn("Sensori georeferenziati", reply["text"])
+        self.assertIn(f"entry:{entry.pk}", [c.get("key") for c in reply["chips"]])
+
     def test_more_words(self):
         from chatbot.conversation import is_more
 

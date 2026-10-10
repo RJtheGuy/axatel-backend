@@ -405,7 +405,10 @@ class ChatbotEngine:
                 [(m_idx, m_score, m_margin), (s_idx, s_score, s_margin)], key=lambda t: t[1])
             matched = self._questions[top] if top is not None else None
             reason = "below THRESHOLD" if top_score < self.THRESHOLD else "margin too small"
-            return fallback(reason, top_score, top_margin, matched)
+            picked = self._word_tie_break(query, scores, top_score) if reason == "margin too small" else None
+            if picked is None:
+                return fallback(reason, top_score, top_margin, matched)
+            chosen, score, margin = picked
 
         answer = self._answers[self._owners[chosen]]
         return answer.answer_in("it"), {
@@ -414,6 +417,59 @@ class ChatbotEngine:
             "entry_id": getattr(answer, "entry_id", None), "answer_key": answer.key,
             "source": "" if answer.kind == "entry" else answer.label, "link": answer.link,
         }
+
+    def _subject_passage(self, query, vector, language, chosen):
+        """(passage, score) from another page whose title is a subject of the
+        question that the chosen answer does not cover, or None."""
+        asked = talk.content_stems(query)
+        own_text = " ".join([q for q, o in zip(self._questions, self._owners) if o == chosen.key]
+                            + list((getattr(chosen, "titles", None) or {}).values()))
+        leftover = asked - talk.content_stems(own_text)
+        if not leftover:
+            return None
+        for score, common, passage in self._rank_passages([vector], query, language)[:20]:
+            if passage.page_id == getattr(chosen, "page_id", None) or score < self.CONTEXT_MIN:
+                continue
+            page = self._answers.get(self._page_answer.get(passage.page_id, ""))
+            if page is None:
+                continue
+            title = " ".join((getattr(page, "titles", None) or {}).values())
+            if (talk.content_stems(title) & leftover and common >= 1
+                    and len(asked & talk.content_stems(f"{passage.search_text} {title}")) >= 2):
+                return passage, score
+        return None
+
+    def _word_tie_break(self, query, scores, top_score):
+        """Several answers about as close as each other ("monitorate le frane"
+        ≈ "monitorate i cantieri" for the model, because of the shared verb):
+        the one whose own words (title, example questions) contain the
+        question's subject word wins, if exactly one does. None otherwise."""
+        asked = talk.content_stems(query)
+        if not asked:
+            return None
+        best = {}  # group → (index, score)
+        for index in np.argsort(scores)[::-1][:80]:
+            score = float(scores[index])
+            if score < max(self.THRESHOLD, top_score - self.MARGIN):
+                break
+            group = self._group.get(self._owners[index], self._owners[index])
+            best.setdefault(group, (int(index), score))
+        if len(best) < 2:
+            return None
+        texts = {}
+        for question, owner in zip(self._questions, self._owners):
+            texts.setdefault(owner, []).append(question)
+        found = []
+        for index, score in best.values():
+            answer = self._answers[self._owners[index]]
+            own = " ".join(texts.get(answer.key, []) + list((getattr(answer, "titles", None) or {}).values()))
+            common = len(asked & talk.content_stems(own))
+            found.append((common, score, index))
+        found.sort(reverse=True)
+        if found[0][0] == 0 or found[0][0] == found[1][0]:
+            return None
+        rivals = [score for common, score, _ in found[1:]]
+        return found[0][2], found[0][1], found[0][1] - max(rivals)
 
     # -- conversation ----------------------------------------------------------
     def _encode(self, text: str):
@@ -607,6 +663,17 @@ class ChatbotEngine:
         score_meta = {k: meta.get(k) for k in ("best_score", "margin", "matched_question", "reason") if k in meta}
 
         # 2. A clear answer.
+        if chosen is not None and options["page_text"] and chosen.kind != "list":
+            # "Che sensori usate per le frane?": the general answer (Sensori)
+            # is close, but the question also names another page (Frane)
+            # whose text answers it: that paragraph, with a button to the
+            # general answer.
+            found = self._subject_passage(query, vector, language, chosen)
+            if found is not None:
+                out = passage_answer(found[0], found[1], "passage")
+                out["chips"] = (out["chips"] + [{"type": "ask", "label": self._title(chosen, language),
+                                                 "key": chosen.key}])[:4]
+                return out
         if chosen is not None:
             if current is not None and chosen.key == current.key and current_page and options["page_text"]:
                 # Same subject again, more precisely: the paragraph that answers.

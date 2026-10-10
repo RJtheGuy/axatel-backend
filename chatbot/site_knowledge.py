@@ -216,7 +216,7 @@ def _topics() -> list[SiteAnswer]:
                 if key == "altro" or not label:
                     lines += [f"• {name}" for name in names]
                 elif len(names) == 1:
-                    lines.append(f"• {names[0]} ({label[:1].lower() + label[1:] if not label[:2].isupper() else label})")
+                    lines.append(f"• {names[0]} ({label.lower()})")  # "QUALITÀ DELL'ARIA" → "qualità dell'aria"
                 else:
                     lines.append(f"• {label}: {', '.join(names)}")
             lines.append(TOPICS_OUTRO[language])
