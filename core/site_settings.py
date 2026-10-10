@@ -367,12 +367,41 @@ class ChatbotSettings(BaseSiteSetting):
         verbose_name="Risposta a una domanda non chiara (FR)",
     )
 
+    # How the chatbot talks (chatbot/engine.py respond()).
+    page_text_answers = models.BooleanField(
+        default=True, verbose_name="Risposte dal testo delle pagine",
+        help_text="Oltre alla descrizione breve, il chatbot risponde con il paragrafo della pagina che "
+                  "parla di ciò che è stato chiesto, e propone \"Dimmi di più\" per continuare.",
+    )
+    related_pages = models.BooleanField(
+        default=True, verbose_name="Proponi pagine correlate",
+        help_text="Sotto una risposta, fino a due pulsanti verso argomenti vicini (es. dopo \"frane\": "
+                  "\"Monitoraggio fiumi\").",
+    )
+    contact_button = models.BooleanField(
+        default=True, verbose_name="Pulsante \"Parla con un esperto\"",
+        help_text="Quando il chatbot non sa rispondere, o si chiede di prezzi e preventivi, propone il "
+                  "modulo di contatto.",
+    )
+    contact_path = models.CharField(
+        max_length=200, blank=True, default="/contatti",
+        verbose_name="Pagina del pulsante",
+        help_text="Indirizzo in italiano, es. /contatti (vale anche per /en e /fr).",
+    )
+
     panels = [
         FieldPanel("enabled"),
         FieldPanel("title"),
         FieldPanel("welcome_message"),
         FieldPanel("placeholder"),
         FieldPanel("suggestions"),
+        MultiFieldPanel([
+            FieldPanel("page_text_answers"),
+            FieldPanel("related_pages"),
+            FieldPanel("contact_button"),
+            FieldPanel("contact_path"),
+        ], heading="Conversazione",
+           help_text="Le domande ricevute e una prova del chatbot: menu Chatbot a sinistra."),
         MultiFieldPanel([
             FieldPanel("hints_enabled"),
             FieldPanel("hint_delay"),
@@ -381,7 +410,7 @@ class ChatbotSettings(BaseSiteSetting):
             FieldPanel("hint_text_fr"),
             FieldPanel("hint_excluded"),
         ], heading="Suggerimenti sulla pagina",
-           help_text="Testi e domande su misura per una pagina: Snippets → Suggerimenti del chatbot."),
+           help_text="Testi e domande su misura per una pagina: Chatbot → Suggerimenti."),
         MultiFieldPanel([
             FieldPanel("unclear_reply_it"),
             FieldPanel("unclear_reply_en"),

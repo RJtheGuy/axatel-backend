@@ -29,42 +29,86 @@ NOT_READY = {
 SPECIAL_LABELS = {"unclear": "Domanda non chiara", "greeting": "Saluto", "thanks": "Ringraziamento"}
 
 
-def _special_reply(kind, language):
-    """Greeting, thanks or "not understood" (chatbot/understanding.py): the
-    texts of Impostazioni → Chatbot when filled in, else the built-in ones."""
+def _config():
     from wagtail.models import Site
 
     from core.site_settings import ChatbotSettings
 
+    try:
+        site = Site.objects.filter(is_default_site=True).first() or Site.objects.first()
+        return ChatbotSettings.for_site(site) if site else None
+    except Exception:  # noqa: BLE001 - the built-in behaviour is fine
+        logger.exception("Chatbot settings unavailable")
+        return None
+
+
+def _special_reply(kind, language, config=None):
+    """Greeting, thanks or "not understood" (chatbot/understanding.py): the
+    texts of Impostazioni → Chatbot when filled in, else the built-in ones."""
     from .understanding import REPLIES
 
     text = ""
-    try:
-        site = Site.objects.filter(is_default_site=True).first() or Site.objects.first()
-        config = ChatbotSettings.for_site(site) if site else None
-        if config is not None:
-            if kind == "unclear":
-                text = getattr(config, f"unclear_reply_{language}", "") or ""
-            elif kind == "greeting" and language == "it":
-                text = config.welcome_message or ""  # the CMS welcome text is Italian
-    except Exception:  # noqa: BLE001 - the built-in text is fine
-        logger.exception("Chatbot settings unavailable")
+    config = config if config is not None else _config()
+    if config is not None:
+        if kind == "unclear":
+            text = getattr(config, f"unclear_reply_{language}", "") or ""
+        elif kind == "greeting" and language == "it":
+            text = config.welcome_message or ""  # the CMS welcome text is Italian
     return text.strip() or REPLIES[kind][language]
 
 
-def _log(question, language, meta, from_hint=False):
+def _fallback_reply(language):
+    entry = ChatbotEntry.objects.filter(is_fallback=True, active=True).first()
+    return entry.answer_in(language) if entry else NOT_READY[language]
+
+
+def _log(question, language, reply, from_hint=False):
     try:
+        meta = reply.get("meta") or {}
+        kind = reply.get("kind") or ""
+        key = reply.get("answer_key") or ""
+        answer = engine.get_answer(key) if key else None
+        entry_id = getattr(answer, "entry_id", None)
+        if kind == "fallback":
+            entry_id = ChatbotEntry.objects.filter(is_fallback=True).values_list("pk", flat=True).first()
+        source = SPECIAL_LABELS.get(kind) or ("" if answer is None or answer.kind == "entry" else answer.label)
         ChatbotQuestion.objects.create(
             from_hint=from_hint,
             question=question[:300], language=language,
-            entry_id=meta.get("entry_id"), source=(meta.get("source") or "")[:200],
-            score=meta.get("best_score", 0) or 0,
-            margin=meta.get("margin", 0) or 0, answered=not meta.get("used_fallback", True),
+            entry_id=entry_id, source=(source or "")[:200],
+            score=meta.get("passage_score") or meta.get("best_score") or 0,
+            margin=meta.get("margin") or 0,
+            answered=kind not in ("fallback", "unclear"),
+            kind=kind[:20], answer_key=key[:60], in_context=bool(meta.get("in_context")),
         )
         if random.random() < 0.02:  # now and then, forget old questions
             ChatbotQuestion.objects.filter(created_at__lt=timezone.now() - timedelta(days=RETENTION_DAYS)).delete()
     except Exception:
         logger.exception("Could not log chatbot question")
+
+
+def build_reply(query, language, context=None, key=None, config=None):
+    """The engine's turn plus the texts from the CMS, as the chat receives it.
+    Also used by the CMS test page (chatbot/admin_views.py)."""
+    config = config if config is not None else _config()
+    options = {}
+    if config is not None:
+        options = {
+            "page_text": getattr(config, "page_text_answers", True),
+            "related": getattr(config, "related_pages", True),
+            "contact": getattr(config, "contact_button", True),
+        }
+    reply = engine.respond(query, language, context=context, options=options, key=key)
+    kind = reply["kind"]
+    if kind in SPECIAL_LABELS:
+        reply["text"] = _special_reply(kind, language, config)
+    elif not reply["text"]:
+        reply["text"] = _fallback_reply(language)
+    contact_path = ((getattr(config, "contact_path", "") if config is not None else "") or "/contatti").strip()
+    for chip in reply["chips"]:
+        if chip["type"] == "contact":
+            chip["link"] = contact_path if contact_path.startswith("/") else "/" + contact_path
+    return reply
 
 
 @csrf_exempt
@@ -75,6 +119,13 @@ def _log(question, language, meta, from_hint=False):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def chat(request):
+    """One turn of the conversation.
+
+    POST {"message", "locale", "key"?, "hint"?, "context"?}
+      key:     answer of a question picked in a page suggestion or a button
+      context: sent back as received with the previous answer
+    → {"response", "link", "link_label", "chips": [{type, label, key?, link?}], "context"}
+    """
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
     try:
@@ -86,44 +137,25 @@ def chat(request):
 
         # Each question costs CPU (the model runs on the server): keep a
         # single visitor from flooding it.
-        key = f"chatbot-rate:{client_ip(request)}"
-        cache.add(key, 0, timeout=60)
+        rate_key = f"chatbot-rate:{client_ip(request)}"
+        cache.add(rate_key, 0, timeout=60)
         try:
-            count = cache.incr(key)
+            count = cache.incr(rate_key)
         except ValueError:
             count = 1
         if count > RATE_LIMIT:
             return JsonResponse({"error": "Troppe domande in poco tempo: riprova tra un minuto."}, status=429)
 
-        # A question picked in the page suggestion carries the key of its
-        # answer (chatbot/hints.py): that exact answer, no guessing.
-        key = str(data.get("key") or "")[:100]
-        from_hint = bool(data.get("hint"))
-        chosen = None
-        if key:
-            engine._ensure_loaded()
-            chosen = engine.get_answer(key)
-        if chosen is not None:
-            answer, meta = chosen.answer_in("it"), {
-                "best_score": 1.0, "margin": 0.0, "used_fallback": False, "answer_key": chosen.key,
-                "entry_id": getattr(chosen, "entry_id", None),
-                "source": "" if chosen.kind == "entry" else chosen.label, "link": chosen.link,
-            }
-        else:
-            answer, meta = engine.answer_with_scores(query)
-            chosen = engine.get_answer(meta.get("answer_key")) if meta.get("answer_key") else None
-        if meta.get("special"):
-            response = _special_reply(meta["special"], language)
-            meta["source"] = SPECIAL_LABELS[meta["special"]]
-        elif chosen is not None:
-            response = chosen.answer_in(language)
-        else:
-            entry = ChatbotEntry.objects.filter(pk=meta.get("entry_id")).first() if meta.get("entry_id") else None
-            response = entry.answer_in(language) if entry else (answer or engine._fallback or NOT_READY[language])
+        context = data.get("context") if isinstance(data.get("context"), dict) else None
+        key = str(data.get("key") or "")[:100] or None
+        reply = build_reply(query, language, context=context, key=key)
         if not request.headers.get("X-Smoke-Test"):
-            _log(query, language, meta, from_hint)
+            _log(query, language, reply, bool(data.get("hint")))
         # link: the page the answer comes from (Italian path; the widget adds /en or /fr).
-        return JsonResponse({"response": response, "link": meta.get("link") or ""})
+        return JsonResponse({
+            "response": reply["text"], "link": reply["link"] or "", "link_label": reply.get("link_label") or "",
+            "chips": reply["chips"], "context": reply["context"],
+        })
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
     except Exception:
@@ -144,4 +176,3 @@ def hint(request):
     except Exception:
         logger.exception("Chatbot hint failed")
         return JsonResponse({"enabled": False})
-

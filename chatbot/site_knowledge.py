@@ -1,9 +1,10 @@
 """
 Chatbot knowledge built from the published site, so the bot knows every
 monitoring topic, product, solution, success story, glossary term and FAQ
-question without anyone copying them into Snippets → Voci chatbot.
+question without anyone copying them into Chatbot → Voci chatbot.
 
-Each published Italian page gives one answer: a few ways of asking about it
+Each published Italian page (monitoring topics, products, solutions, success
+stories, services, company and insight pages) gives one answer: a few ways of asking about it
 (Italian, plus the page's English/French titles) and its short description,
 with a link to the page. Two list answers are built too: "Cosa monitorate?"
 (the published topics by area) and "Quali prodotti avete?".
@@ -72,6 +73,7 @@ class SiteAnswer:
     link: str = ""  # Italian path; the widget adds /en or /fr
     titles: dict = field(default_factory=dict)  # language → page title (for evaluate_chatbot)
     labels: dict = field(default_factory=dict)  # language → the question as written (FAQ), for page hints
+    page_id: int | None = None  # the Italian page it comes from (its text: passages.py)
 
     def answer_in(self, language: str) -> str:
         return (self.texts.get(language) or "").strip() or self.texts.get("it", "")
@@ -139,6 +141,12 @@ def build() -> list[SiteAnswer]:
                        lambda p: p.description or p.search_description,
                        lambda p: [f"progetto {p.client}" if p.client else "", f"caso di successo {p.title}",
                                   f"cosa avete fatto per {p.client}?" if p.client else ""])
+    answers += _simple("services.ServicePage", "service", "Servizio",
+                       lambda p: p.short_description or p.search_description,
+                       lambda p: [f"cos'è {p.title}?", f"offrite {p.title}?", f"servizio di {p.title}"])
+    answers += _simple("home.InfoPage", "info", "Pagina",
+                       lambda p: p.introduction or p.search_description,
+                       lambda p: [p.eyebrow, f"{p.title}?"])
     # A glossary term that is also a page (LoRaWAN, SCADA, Firmware…) would
     # tie with that page and send the fallback: its questions go to the page.
     by_name = {}
@@ -183,7 +191,7 @@ def _topics() -> list[SiteAnswer]:
         questions = [page.title, f"monitorate {name}?", f"monitoraggio {name}", f"come monitorate {name}?",
                      f"sistemi per monitorare {name}", *(_titles(versions))]
         out.append(SiteAnswer(f"topic:{page.pk}", "topic", f"Monitoraggio: {page.title}", questions, texts, _path(page),
-                              {lang: p.title for lang, p in versions.items()}))
+                              {lang: p.title for lang, p in versions.items()}, page_id=page.pk))
         key = re.sub(r"[^a-z]", "", (page.category or "").lower().replace("à", "a")) or "altro"
         by_area.setdefault(key, []).append({lang: _short_topic(p.title) for lang, p in versions.items()})
     if by_area:
@@ -215,7 +223,7 @@ def _products() -> list[SiteAnswer]:
         questions = [page.title, f"cos'è {page.title}?", f"cosa fa {page.title}?", f"a cosa serve {page.title}?",
                      f"scheda tecnica {page.title}", page.model_code, *(_titles(versions))]
         out.append(SiteAnswer(f"product:{page.pk}", "product", f"Prodotto: {page.title}", questions, texts, _path(page),
-                              {lang: p.title for lang, p in versions.items()}))
+                              {lang: p.title for lang, p in versions.items()}, page_id=page.pk))
         names.append({lang: p.title for lang, p in versions.items()})
     if names:
         texts = {}
@@ -238,7 +246,7 @@ def _simple(label, kind, prefix, text_of, more_questions) -> list[SiteAnswer]:
         texts = _texts(versions, text_of)
         questions = [page.title, *more_questions(page), *(_titles(versions))]
         out.append(SiteAnswer(f"{kind}:{page.pk}", kind, f"{prefix}: {page.title}", questions, texts, _path(page),
-                              {lang: p.title for lang, p in versions.items()}))
+                              {lang: p.title for lang, p in versions.items()}, page_id=page.pk))
     return out
 
 
@@ -297,7 +305,7 @@ def _faqs() -> list[SiteAnswer]:
                     questions.append(items[position][0])
                     labels[language] = _plain(items[position][0])
             out.append(SiteAnswer(f"faq:{page.pk}:{position}", "faq", f"FAQ: {question[:80]}", questions, texts,
-                                  _path(page), labels=labels))
+                                  _path(page), labels=labels, page_id=page.pk))
     return out
 
 

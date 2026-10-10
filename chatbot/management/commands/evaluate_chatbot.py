@@ -2,7 +2,7 @@
 Measure how well the chatbot recognises questions, and pick its thresholds
 from data instead of guesses.
 
-Leave-one-out on the knowledge base (Snippets → Voci chatbot): every
+Leave-one-out on the knowledge base (Chatbot → Voci chatbot): every
 question of an entry that has at least two is hidden in turn and asked to
 the bot, which must find the right entry from the others. With the
 translation models installed, the same questions are also asked in English

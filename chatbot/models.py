@@ -1,11 +1,9 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
-from wagtail.admin.panels import FieldPanel
-from wagtail.snippets.models import register_snippet
+from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 
 
-@register_snippet
 class ChatbotEntry(models.Model):
     questions = models.TextField(
         verbose_name="Domande",
@@ -24,6 +22,21 @@ class ChatbotEntry(models.Model):
                   "`manage.py translate_settings` la riempie con il modello di traduzione: rileggila.",
     )
     answer_fr = models.TextField(blank=True, verbose_name="Risposta (FR)")
+    page = models.ForeignKey(
+        "wagtailcore.Page", null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+        verbose_name="Pagina collegata",
+        help_text="Facoltativa. Sotto la risposta compare \"Scopri di più\" verso questa pagina, e "
+                  "\"Dimmi di più\" continua con il testo della pagina.",
+    )
+    follow_ups = models.TextField(
+        blank=True, verbose_name="Domande successive proposte",
+        help_text="Facoltative, una per riga (al massimo 3): compaiono come pulsanti sotto la risposta, "
+                  "e il chatbot risponde come se il visitatore le avesse scritte. Es. \"Quanto costa?\"",
+    )
+    active = models.BooleanField(
+        default=True, verbose_name="Attiva",
+        help_text="Spegni per non usare più questa risposta senza cancellarla.",
+    )
     is_fallback = models.BooleanField(
         default=False,
         verbose_name="Risposta di riserva",
@@ -40,6 +53,8 @@ class ChatbotEntry(models.Model):
         FieldPanel("answer"),
         FieldPanel("answer_en"),
         FieldPanel("answer_fr"),
+        MultiFieldPanel([FieldPanel("page"), FieldPanel("follow_ups")], heading="Dopo la risposta"),
+        FieldPanel("active"),
         FieldPanel("is_fallback"),
     ]
 
@@ -82,6 +97,11 @@ class ChatbotEntry(models.Model):
     @property
     def questions_list(self) -> list[str]:
         return [q.strip() for q in self.questions.splitlines() if q.strip()]
+
+    @property
+    def follow_up_list(self) -> list[str]:
+        return [q.strip() for q in (self.follow_ups or "").splitlines() if q.strip()][:3]
+
     def answer_in(self, language: str) -> str:
         """The answer in the visitor's language, Italian when not translated."""
         if language in ("en", "fr"):
@@ -93,7 +113,7 @@ class ChatbotEntry(models.Model):
 
 class ChatbotQuestion(models.Model):
     """What visitors asked and how the bot decided, to see what is missing
-    from the answers (Snippets → Domande al chatbot). Only the question text
+    from the answers (Chatbot → Domande ricevute). Only the question text
     is kept (no name, address or IP), for 180 days."""
 
     question = models.CharField(max_length=300, verbose_name="Domanda")
@@ -108,19 +128,50 @@ class ChatbotQuestion(models.Model):
                                     help_text="Domanda scelta nella nuvoletta di suggerimento della pagina.")
     answered = models.BooleanField(default=False, verbose_name="Risposto",
                                    help_text="No = è stata data la risposta di riserva.")
+    kind = models.CharField(max_length=20, blank=True, choices=[
+        ("entry", "Voce chatbot"), ("page", "Pagina del sito"), ("passage", "Testo di una pagina"),
+        ("context", "Seguito della conversazione"), ("more", "Dimmi di più"), ("clarify", "Domanda di chiarimento"),
+        ("fallback", "Nessuna risposta"), ("greeting", "Saluto"), ("thanks", "Ringraziamento"),
+        ("unclear", "Domanda non chiara"),
+    ], verbose_name="Come ha risposto")
+    answer_key = models.CharField(max_length=60, blank=True, verbose_name="Chiave risposta")
+    in_context = models.BooleanField(default=False, verbose_name="Durante una conversazione",
+                                     help_text="Sì = c'era già una domanda prima, il chatbot ne ha tenuto conto.")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Quando")
 
     class Meta:
-        verbose_name = "Domanda al chatbot"
-        verbose_name_plural = "Domande al chatbot"
+        verbose_name = "Domanda ricevuta"
+        verbose_name_plural = "Domande ricevute"
         ordering = ["-created_at"]
 
     def __str__(self):
         return self.question[:80]
 
+    def create_answer(self):
+        """ "Crea risposta" in the list: a new Voce chatbot with this question."""
+        from urllib.parse import quote
+
+        from django.urls import reverse
+        from django.utils.html import format_html
+
+        if self.answered and self.kind != "clarify":
+            return ""
+        url = reverse("wagtailsnippets_chatbot_chatbotentry:add") + "?domanda=" + quote(self.question)
+        return format_html('<a class="button button-small button-secondary" href="{}">Crea risposta</a>', url)
+
+    create_answer.short_description = "Azione"
+
+    def how(self):
+        if self.kind:
+            label = self.get_kind_display()
+            return f"{label} (in conversazione)" if self.in_context and self.kind not in ("more", "context") else label
+        return self.source or ("Voce chatbot" if self.entry_id else "")
+
+    how.short_description = "Come ha risposto"
+
 
 class ChatbotHint(models.Model):
-    """Snippets → Suggerimenti del chatbot: the bubble's text and questions
+    """Chatbot → Suggerimenti: the bubble's text and questions
     for one page, instead of the ones made automatically from the page."""
 
     path = models.CharField(
@@ -165,3 +216,16 @@ class ChatbotHint(models.Model):
         raw = (getattr(self, f"questions_{language}", "") or "").strip() or (
             self.questions_it if language == "it" else "")
         return [line.strip() for line in raw.splitlines() if line.strip()][:3]
+
+
+class ChatbotVector(models.Model):
+    """The language model's numbers for one text (question or page passage),
+    kept so that a restart does not have to compute them all again.
+    Technical: not shown in the CMS, rebuilt automatically when missing."""
+
+    key = models.CharField(max_length=40, unique=True)  # sha1 of model name + text
+    vector = models.BinaryField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Vettore chatbot"

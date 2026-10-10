@@ -1,7 +1,7 @@
 """
 
 Runs every question currently in the database (ChatbotEntry, editable
-from Snippets -> Voci chatbot) back through the engine, or a single
+from Chatbot -> Voci chatbot) back through the engine, or a single
 custom --query, and prints the similarity numbers behind each decision,
 so ChatbotEngine.THRESHOLD and .MARGIN in chatbot/engine.py can be
 tuned from real measurements instead of guesses.
@@ -49,7 +49,7 @@ class Command(BaseCommand):
         if not entries.exists():
             self.stdout.write(self.style.WARNING(
                 "No ChatbotEntry rows found. Run `manage.py seed_chatbot_kb` "
-                "first, or add some in Snippets -> Voci chatbot."
+                "first, or add some in Chatbot -> Voci chatbot."
             ))
             return
 
