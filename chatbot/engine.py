@@ -422,12 +422,15 @@ class ChatbotEngine:
         """(passage, score) from another page whose title is a subject of the
         question that the chosen answer does not cover, or None."""
         asked = talk.content_stems(query)
-        own_text = " ".join([q for q, o in zip(self._questions, self._owners) if o == chosen.key]
-                            + list((getattr(chosen, "titles", None) or {}).values()))
+        # What the chosen answer is about: its page title, or for a Voce
+        # chatbot without a page its first question (not all its example
+        # questions: "sensori per frane e ponti" would hide "frane").
+        titles = list((getattr(chosen, "titles", None) or {}).values())
+        own_text = " ".join(titles) if titles else self._title(chosen, "it")
         leftover = asked - talk.content_stems(own_text)
         if not leftover:
             return None
-        for score, common, passage in self._rank_passages([vector], query, language)[:20]:
+        for score, common, passage in self._rank_passages([vector], query, language)[:40]:
             if passage.page_id == getattr(chosen, "page_id", None) or score < self.CONTEXT_MIN:
                 continue
             page = self._answers.get(self._page_answer.get(passage.page_id, ""))
