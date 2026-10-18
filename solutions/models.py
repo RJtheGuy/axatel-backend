@@ -11,8 +11,6 @@ from core.base_pages import CardSectionIndexPage, CardDetailPage
 from core.blocks import BODY_BLOCKS
 from core.page_meta import category_field, cover_position_field, image_frame_field, show_card_title_field
 
-from .blocks import SOLUTION_SECTION_BLOCKS
-
 GROUP_CHOICES = [
     ("Piattaforme", "Piattaforme"),
     ("Sensori", "Sensori"),
@@ -46,8 +44,7 @@ class SolutionPage(CardDetailPage):
         APIField("cover_position"),
         APIField("image_frame"),
         APIField("show_card_title"),
-        APIField("show_process"),
-        APIField("show_related"),
+        APIField("body_after"),
         APIField("tags", serializer=TagListField()),
     ]
 
@@ -62,20 +59,13 @@ class SolutionPage(CardDetailPage):
     # On by default here: the Soluzioni pictures have always been in the white box.
     image_frame = image_frame_field(default=True)
     show_card_title = show_card_title_field()
-    show_process = models.BooleanField(
-        default=True, verbose_name="Mostra 'Come lavoriamo'",
-        help_text="Acceso: i 5 passaggi compaiono dopo il contenuto, oppure dove metti il blocco "
-                  "'Come lavoriamo' nel contenuto (così puoi aggiungere altro dopo). Spento: non compaiono.",
-    )
-    show_related = models.BooleanField(
-        default=True, verbose_name="Mostra 'Altre soluzioni'",
-        help_text="Acceso: le card delle altre soluzioni compaiono dopo il contenuto, oppure dove metti il "
-                  "blocco 'Altre soluzioni' nel contenuto. Spento: non compaiono.",
-    )
-    # The usual blocks, plus the two sections above, to place them where you want.
-    body = StreamField(
-        BODY_BLOCKS + SOLUTION_SECTION_BLOCKS, use_json_field=True, blank=True,
-        verbose_name="Contenuto",
+    # Blocks shown after "Come lavoriamo" and "Altre soluzioni", before the closing
+    # "Hai un progetto da monitorare?" box: text, pictures, cards… as in Contenuto.
+    body_after = StreamField(
+        BODY_BLOCKS, use_json_field=True, blank=True,
+        verbose_name="Contenuto in fondo (dopo 'Altre soluzioni')",
+        help_text="Facoltativo. Blocchi mostrati dopo 'Come lavoriamo' e 'Altre soluzioni', "
+                  "prima del riquadro finale 'Hai un progetto da monitorare?'.",
     )
     tags = ClusterTaggableManager(through="solutions.SolutionPageTag", blank=True)
 
@@ -94,10 +84,7 @@ class SolutionPage(CardDetailPage):
             FieldPanel("icon"),
         ], heading="📋 Meta"),
         FieldPanel("body"),
-        MultiFieldPanel([
-            FieldPanel("show_process"),
-            FieldPanel("show_related"),
-        ], heading="Sezioni dopo il contenuto"),
+        FieldPanel("body_after"),
         FieldPanel("tags"),
     ]
 
