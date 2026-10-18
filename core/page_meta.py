@@ -8,6 +8,8 @@ an empty field shows nothing on the site.
     Immagine di copertina    → card picture, and on the page as chosen below
     Immagine nella pagina    → next to the introduction / large at the top
                                (like a success story) / not on the page
+    Riquadro bianco          → the picture next to the introduction in a white
+                               box, or straight on the page (Monitoraggio, Soluzioni)
     Descrizione (card)       → text on the card (the page's existing field)
     Mostra titolo nella card → off when the picture already contains the title
     Tags                     → "#tag" list on the page (and on the card where
@@ -48,6 +50,15 @@ def cover_position_field():
         verbose_name="Immagine nella pagina",
         help_text="Dove compare l'immagine di copertina nella pagina. "
                   "Nella card dell'elenco compare comunque.",
+    )
+
+
+def image_frame_field(default=False):
+    return models.BooleanField(
+        default=default,
+        verbose_name="Riquadro bianco attorno all'immagine",
+        help_text="Spento: l'immagine appoggia direttamente sullo sfondo (il bianco del disegno sparisce). "
+                  "Acceso: l'immagine sta in un riquadro bianco con ombra.",
     )
 
 

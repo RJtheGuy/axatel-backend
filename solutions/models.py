@@ -4,10 +4,14 @@ from modelcluster.fields import ParentalKey
 from taggit.models import TaggedItemBase
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.api import APIField
+from wagtail.fields import StreamField
 
 from core.api_blocks import ImageAPIField, TagListField
 from core.base_pages import CardSectionIndexPage, CardDetailPage
-from core.page_meta import category_field, cover_position_field, show_card_title_field
+from core.blocks import BODY_BLOCKS
+from core.page_meta import category_field, cover_position_field, image_frame_field, show_card_title_field
+
+from .blocks import SOLUTION_SECTION_BLOCKS
 
 GROUP_CHOICES = [
     ("Piattaforme", "Piattaforme"),
@@ -40,7 +44,10 @@ class SolutionPage(CardDetailPage):
         APIField("category"),
         APIField("cover_image", serializer=ImageAPIField()),
         APIField("cover_position"),
+        APIField("image_frame"),
         APIField("show_card_title"),
+        APIField("show_process"),
+        APIField("show_related"),
         APIField("tags", serializer=TagListField()),
     ]
 
@@ -52,7 +59,24 @@ class SolutionPage(CardDetailPage):
     cover_image = models.ForeignKey("wagtailimages.Image", null=True, blank=True, on_delete=models.SET_NULL,
                                     related_name="+", verbose_name="Immagine di copertina")
     cover_position = cover_position_field()
+    # On by default here: the Soluzioni pictures have always been in the white box.
+    image_frame = image_frame_field(default=True)
     show_card_title = show_card_title_field()
+    show_process = models.BooleanField(
+        default=True, verbose_name="Mostra 'Come lavoriamo'",
+        help_text="Acceso: i 5 passaggi compaiono dopo il contenuto, oppure dove metti il blocco "
+                  "'Come lavoriamo' nel contenuto (così puoi aggiungere altro dopo). Spento: non compaiono.",
+    )
+    show_related = models.BooleanField(
+        default=True, verbose_name="Mostra 'Altre soluzioni'",
+        help_text="Acceso: le card delle altre soluzioni compaiono dopo il contenuto, oppure dove metti il "
+                  "blocco 'Altre soluzioni' nel contenuto. Spento: non compaiono.",
+    )
+    # The usual blocks, plus the two sections above, to place them where you want.
+    body = StreamField(
+        BODY_BLOCKS + SOLUTION_SECTION_BLOCKS, use_json_field=True, blank=True,
+        verbose_name="Contenuto",
+    )
     tags = ClusterTaggableManager(through="solutions.SolutionPageTag", blank=True)
 
     # Same "📋 Meta" panel as Monitoraggio, Servizi and the informative pages
@@ -64,11 +88,16 @@ class SolutionPage(CardDetailPage):
             FieldPanel("category"),
             FieldPanel("cover_image"),
             FieldPanel("cover_position"),
+            FieldPanel("image_frame"),
             FieldPanel("short_description"),
             FieldPanel("show_card_title"),
             FieldPanel("icon"),
         ], heading="📋 Meta"),
         FieldPanel("body"),
+        MultiFieldPanel([
+            FieldPanel("show_process"),
+            FieldPanel("show_related"),
+        ], heading="Sezioni dopo il contenuto"),
         FieldPanel("tags"),
     ]
 
