@@ -70,7 +70,7 @@ def fill_settings(language, translator, dry_run=False):
             if touched and not dry_run:
                 member.save()
 
-    # Chatbot answers (Snippets → Voci chatbot)
+    # Chatbot answers (Chatbot → Voci chatbot)
     from chatbot.models import ChatbotEntry
     for entry in ChatbotEntry.objects.all():
         if _fill(entry, "answer", language, translator, notes, f"chatbot · {entry}") and not dry_run:

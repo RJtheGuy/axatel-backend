@@ -7,7 +7,7 @@ GET /api/v2/chatbot/hint/?path=/monitoraggio/frane&locale=it
    "contact": true}
 
 Where the questions come from, first match wins:
-1. Snippets → Suggerimenti del chatbot, an entry for that address.
+1. Chatbot → Suggerimenti, an entry for that address.
 2. The published page itself, as the chatbot already knows it
    (site_knowledge.py): one question about the page (topic, product,
    solution, case study, list page) and up to two of its FAQs. Each carries
@@ -47,6 +47,8 @@ TEMPLATES = {
                  "fr": "Que proposez-vous pour {title} ?"},
     "case": {"it": "Raccontami il progetto {title}", "en": "Tell me about the {title} project",
              "fr": "Parlez-moi du projet {title}"},
+    "service": {"it": "Cosa comprende il servizio {title}?", "en": "What does the {title} service include?",
+                "fr": "Que comprend le service {title} ?"},
 }
 LIST_LABELS = {
     "list:topics": {"it": "Cosa monitorate?", "en": "What do you monitor?", "fr": "Que surveillez-vous ?"},

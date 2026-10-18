@@ -2,7 +2,7 @@
 One-time seeder: turns the ~20 hardcoded entries in chatbot/kb_seed_data.py
 into real ChatbotEntry rows, so the chatbot has something to say on a
 fresh install, and so an editor has real examples to copy the pattern
-of in Snippets → Voci chatbot before adding their own.
+of in Chatbot → Voci chatbot before adding their own.
 
 Usage:
     python manage.py seed_chatbot_kb --dry-run

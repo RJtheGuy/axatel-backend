@@ -1,0 +1,66 @@
+{% extends "wagtailadmin/base.html" %}
+{% block titletag %}Prova il chatbot{% endblock %}
+{% block content %}
+    {% include "wagtailadmin/shared/header.html" with title="Prova il chatbot" icon="comment" %}
+    <div class="nice-padding" style="max-width:900px">
+        <p class="help-block">Scrivi come un visitatore, anche domande di seguito ("e quanto costa?", "dimmi di più"): il chatbot tiene conto delle risposte precedenti. Le domande fatte qui non finiscono in <a href="{{ questions_url }}">Domande ricevute</a>.</p>
+
+        {% for turn in history %}
+            <div style="margin:18px 0 6px;font-weight:600">🙋 {{ turn.question }}</div>
+            <div style="border:1px solid var(--w-color-border-furniture);border-radius:8px;padding:12px 14px;white-space:pre-line">{{ turn.text }}{% if turn.link %}
+<a href="{{ turn.link }}" target="_blank" rel="noopener">Scopri di più → {{ turn.link }}</a>{% endif %}</div>
+            {% if turn.chips %}
+                <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+                    {% for chip in turn.chips %}
+                        {% if chip.type == "contact" %}
+                            <span class="w-status">📞 {{ chip.label }} ({{ chip.link }})</span>
+                        {% elif forloop.parentloop.last %}
+                            <form method="post" style="display:inline">{% csrf_token %}
+                                <input type="hidden" name="question" value="{{ chip.label }}">
+                                <input type="hidden" name="key" value="{{ chip.key|default:'' }}">
+                                <input type="hidden" name="language" value="{{ language }}">
+                                <input type="hidden" name="history" value="{{ history_json }}">
+                                <input type="hidden" name="context" value="{{ context_json }}">
+                                <button class="button button-small button-secondary" type="submit">{{ chip.label }}</button>
+                            </form>
+                        {% else %}
+                            <span class="w-status">{{ chip.label }}</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <p class="help-block" style="margin-top:4px"><b>{{ turn.kind }}</b> — {{ turn.kind_help }} <span style="opacity:.7">{{ turn.details }}</span></p>
+        {% endfor %}
+
+        <form method="post" style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">{% csrf_token %}
+            <input type="text" name="question" placeholder="Scrivi una domanda…" style="flex:1 1 320px" autofocus>
+            <select name="language" style="width:auto">
+                {% for code, name in languages %}<option value="{{ code }}" {% if code == language %}selected{% endif %}>{{ name }}</option>{% endfor %}
+            </select>
+            <input type="hidden" name="history" value="{{ history_json }}">
+            <input type="hidden" name="context" value="{{ context_json }}">
+            <button class="button" type="submit">Chiedi</button>
+            {% if history %}<button class="button button-secondary" type="submit" name="reset" value="1">Nuova conversazione</button>{% endif %}
+        </form>
+
+        <h2 style="margin-top:40px">Ultimi 30 giorni</h2>
+        {% if stats.total %}
+            <p>{{ stats.total }} domande, {{ stats.answered_pct }}% con una risposta, {{ stats.context_pct }}% durante una conversazione.</p>
+            <ul>{% for label, n in stats.kinds %}<li>{{ label }}: {{ n }}</li>{% endfor %}</ul>
+            {% if stats.unanswered %}
+                <h3>Domande senza risposta più frequenti</h3>
+                <table class="listing">
+                    <thead><tr><th>Domanda</th><th>Volte</th><th></th></tr></thead>
+                    <tbody>
+                        {% for row in stats.unanswered %}
+                            <tr><td>{{ row.question }}</td><td>{{ row.count }}</td>
+                                <td><a class="button button-small button-secondary" href="{{ row.create }}">Crea risposta</a></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        {% else %}
+            <p>Ancora nessuna domanda dai visitatori.</p>
+        {% endif %}
+    </div>
+{% endblock %}

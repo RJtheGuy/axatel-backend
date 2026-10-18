@@ -115,11 +115,25 @@ class Vocabulary:
         return False
 
 
+# "Di cosa parli?", "what are you talking about": the visitor is lost, not
+# asking about Axatel. Whole message only.
+CONFUSED = {
+    "cosa", "come", "eh", "cioe", "what", "huh", "quoi", "pardon",
+    "di cosa parli", "di che parli", "di cosa stai parlando", "di che stai parlando", "cosa dici", "che dici",
+    "non capisco", "non ho capito", "non capisco cosa dici", "cosa vuol dire", "cosa vuoi dire", "in che senso",
+    "what are you talking about", "what do you mean", "i don t understand", "i dont understand",
+    "that makes no sense", "what is that", "what",
+    "de quoi tu parles", "de quoi parlez vous", "je ne comprends pas", "qu est ce que tu dis",
+}
+
+
 def classify(question: str, vocabulary: Vocabulary | None, known_questions: set[str] | None = None) -> str | None:
     """None when the question should be matched normally, otherwise
     "greeting", "thanks" or "unclear"."""
     if known_questions and " ".join(words(question)) in known_questions:
         return None
+    if " ".join(words(question)) in CONFUSED:
+        return "unclear"
     tokens = words(question)
     if not tokens:
         return "unclear"

@@ -3,7 +3,7 @@ The chatbot's matching engine. It never writes text: it finds the answer
 whose example questions mean the same as the visitor's question.
 
 Two kinds of answers are indexed together:
-  - entries written by hand in Snippets → Voci chatbot (they always win);
+  - entries written by hand in Chatbot → Voci chatbot (they always win);
   - answers built from the published site (chatbot/site_knowledge.py):
     monitoring topics, products, solutions, success stories, glossary terms,
     FAQ blocks, and the lists "cosa monitorate?" / "quali prodotti avete?".
@@ -11,7 +11,17 @@ Two kinds of answers are indexed together:
 The index is rebuilt when an entry is saved or, checked at most once a
 minute, when a page is published or unpublished. Questions already embedded
 are kept, so a rebuild only encodes what is new.
+
+Conversation (respond()): besides the matching above, the text of the pages
+is indexed in short passages (passages.py), so an answer can quote the
+paragraph that answers a detailed question, "Dimmi di più" continues with
+the same page, a short follow-up ("e quanto costa?") is understood in the
+light of the previous answer, and two equally close answers lead to a
+question ("Intendi A o B?") instead of the fallback. The page's numbers
+(vectors) are kept in the database (ChatbotVector) so a restart is fast;
+`manage.py chatbot_warmup` computes them all at deploy time.
 """
+import hashlib
 import os
 import re
 import time
@@ -21,7 +31,8 @@ import numpy as np
 from django.conf import settings
 from django.db.models import Max
 
-from .models import ChatbotEntry
+from . import conversation as talk
+from .models import ChatbotEntry, ChatbotVector
 from .understanding import Vocabulary, classify, words
 
 # The model is fetched once at deploy time (manage.py setup_chatbot_model)
@@ -57,7 +68,17 @@ class ManualAnswer:
         self.kind = "entry"
         self.label = str(entry)
         self.link = ""
+        self.page_id = None
+        self.titles = {}
+        self.follow_ups = entry.follow_up_list
         self._entry = entry
+        page = entry.page
+        if page is not None and page.live:
+            italian = page if page.locale.language_code == "it" else (
+                page.get_translations(inclusive=True).filter(locale__language_code="it").first() or page)
+            self.page_id = italian.pk
+            self.link = re.sub(r"^https?://[^/]+", "", italian.url or "") or "/"
+            self.titles = {"it": italian.title}
 
     def answer_in(self, language):
         return self._entry.answer_in(language)
@@ -73,6 +94,16 @@ class ChatbotEngine:
     # Multilingual: the answers are written in Italian and visitors ask in
     # Italian, English or French. (The old all-MiniLM-L6-v2 is English-only.)
     MODEL_NAME = os.environ.get("CHATBOT_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
+    # Page passages (respond()): how close a paragraph must be to be quoted.
+    PASSAGE_MIN = float(os.environ.get("CHATBOT_PASSAGE_MIN", "0.50"))   # anywhere on the site
+    CONTEXT_MIN = float(os.environ.get("CHATBOT_CONTEXT_MIN", "0.35"))   # in the page being discussed
+    EXTRA_MIN = float(os.environ.get("CHATBOT_EXTRA_MIN", "0.45"))       # added under a page answer
+    CLARIFY_MIN = float(os.environ.get("CHATBOT_CLARIFY_MIN", "0.60"))   # "Intendi A o B?"
+    RELATED_MIN = float(os.environ.get("CHATBOT_RELATED_MIN", "0.45"))
+    # Passages encoded during a visitor's request at most (the rest on the
+    # next requests, or all at once with manage.py chatbot_warmup).
+    ENCODE_BUDGET = int(os.environ.get("CHATBOT_ENCODE_BUDGET", "48"))
+    PAGE_KINDS = ("topic", "product", "solution", "case", "service", "info")
 
     def __init__(self):
         self._model = None
@@ -89,6 +120,13 @@ class ChatbotEngine:
         self._vectors = {}        # normalised question → embedding (kept across rebuilds)
         self._vocabulary = None   # every word of the questions and answers (understanding.py)
         self._known = set()       # the example questions, as plain words
+        self._all_passages = []   # every passage of the site (passages.py)
+        self._passages = []       # the ones with a vector, in the same order as _p_matrix
+        self._p_matrix = None
+        self._passages_done = True
+        self._page_answer = {}    # Italian page id → its answer key (topic:12, product:7…)
+        self._group = {}          # answer key → "page:<id>" for answers about the same page
+        self._page_vectors = {}   # answer key → average of its question vectors (related pages)
 
     @staticmethod
     def _normalize_text(value: str) -> str:
@@ -133,10 +171,67 @@ class ChatbotEngine:
         latest = ChatbotEntry.objects.aggregate(latest=Max("updated_at"))["latest"]
         version = (latest, self._site_signature())
         if self._model is not None and version == self._loaded_version:
+            if not self._passages_done:
+                self._index_passages(self.ENCODE_BUDGET)
             return
         self._load_model()
         self._rebuild()
         self._loaded_version = version
+
+    # -- vectors, kept in memory and in the database ---------------------------
+    def _vector_key(self, text: str) -> str:
+        return hashlib.sha1(f"{self.MODEL_NAME}|{text}".encode()).hexdigest()
+
+    def _vectors_for(self, texts, budget=None):
+        """text → vector for the texts given: from memory, then the database,
+        then the model (at most `budget` texts computed now; None = all)."""
+        wanted = [t for t in dict.fromkeys(texts) if t and t not in self._vectors]
+        if wanted and self.MODEL_NAME != "hash":
+            keys = {self._vector_key(t): t for t in wanted}
+            try:
+                found = list(keys)
+                for start in range(0, len(found), 500):
+                    for row in ChatbotVector.objects.filter(key__in=found[start:start + 500]):
+                        self._vectors[keys[row.key]] = np.frombuffer(bytes(row.vector), dtype=np.float32)
+            except Exception as error:  # noqa: BLE001 - the model can still compute them
+                print(f"[Chatbot] Vector cache unavailable: {error}")
+            wanted = [t for t in wanted if t not in self._vectors]
+        if wanted:
+            batch = wanted if budget is None else wanted[:budget]
+            if batch:
+                vectors = self._model.encode(batch, convert_to_numpy=True, normalize_embeddings=True,
+                                             show_progress_bar=False).astype(np.float32)
+                self._vectors.update(zip(batch, vectors))
+                if self.MODEL_NAME != "hash":
+                    try:
+                        ChatbotVector.objects.bulk_create(
+                            [ChatbotVector(key=self._vector_key(t), vector=v.tobytes()) for t, v in zip(batch, vectors)],
+                            ignore_conflicts=True, batch_size=200)
+                    except Exception as error:  # noqa: BLE001
+                        print(f"[Chatbot] Could not store vectors: {error}")
+        return {t: self._vectors[t] for t in texts if t in self._vectors}
+
+    def _index_passages(self, budget=None):
+        texts = [p.search_text for p in self._all_passages]
+        vectors = self._vectors_for(texts, budget)
+        self._passages = [p for p in self._all_passages if p.search_text in vectors]
+        self._p_matrix = np.array([vectors[p.search_text] for p in self._passages]) if self._passages else None
+        self._passages_done = len(self._passages) == len(self._all_passages)
+        # Related pages: the average of what each page says (its passages) is
+        # a better likeness than its questions, which all read "monitorate …?".
+        for page_id, key in self._page_answer.items():
+            rows = [i for i, p in enumerate(self._passages) if p.page_id == page_id and p.language == "it"]
+            if rows:
+                mean = self._p_matrix[rows].mean(axis=0)
+                self._page_vectors[key] = mean / (np.linalg.norm(mean) or 1)
+        if self._passages_done and self._all_passages:
+            print(f"[Chatbot] {len(self._passages)} page passages indexed.")
+
+    def warm_up(self):
+        """Every vector computed and stored (manage.py chatbot_warmup)."""
+        self._ensure_loaded()
+        self._index_passages(None)
+        return len(self._questions), len(self._passages)
 
     def _rebuild(self):
         existing_fallback = self._fallback
@@ -155,7 +250,9 @@ class ChatbotEngine:
                 manual.append(is_manual)
             answers[answer.key] = answer
 
-        for entry in ChatbotEntry.objects.all():
+        for entry in ChatbotEntry.objects.select_related("page").all():
+            if not entry.active:
+                continue
             if entry.is_fallback:
                 self._fallback = entry.answer.strip()
                 self._fallback_id = entry.pk
@@ -190,12 +287,54 @@ class ChatbotEngine:
             print("[Chatbot] No ChatbotEntry rows found - run `manage.py seed_chatbot_kb`.")
             return
 
-        missing = [q for q in dict.fromkeys(questions) if q not in self._vectors]
-        if missing:
-            vectors = self._model.encode(missing, convert_to_numpy=True, normalize_embeddings=True,
-                                         show_progress_bar=False)
-            self._vectors.update(zip(missing, vectors))
-        self._embeddings = np.array([self._vectors[q] for q in questions])
+        vectors = self._vectors_for(questions)
+        self._embeddings = np.array([vectors[q] for q in questions])
+
+        # A hand-written entry about a page ("cos'è Angel River?") without a
+        # "Pagina collegata" gets that page: its link, "Dimmi di più" and
+        # follow-ups then work as for the page's own answer.
+        names = []
+        for a in answers.values():
+            if a.kind in self.PAGE_KINDS and getattr(a, "titles", None):
+                names.append((self._normalize_text(a.titles.get("it", "")), a))
+                if a.kind == "topic":  # "Monitoraggio frane" is also asked as "le frane"
+                    short = self._normalize_text(re.sub(r"^monitoraggio\s+(di |del |della |dei |delle )?", "",
+                                                        a.titles.get("it", ""), flags=re.I))
+                    if len(short) >= 5:
+                        names.append((short, a))
+        titled = sorted(names, key=lambda t: len(t[0]), reverse=True)
+        for answer in answers.values():
+            if answer.kind != "entry" or answer.page_id:
+                continue
+            asked = [f" {self._normalize_text(q)} " for q in answer._entry.questions_list]
+            for title, page in titled:
+                if len(title) >= 4 and any(f" {title} " in q for q in asked):
+                    answer.page_id, answer.link, answer.titles = page.page_id, page.link, dict(page.titles)
+                    break
+
+        self._group = {key: (f"page:{answer.page_id}" if getattr(answer, "page_id", None) else key)
+                       for key, answer in answers.items()}
+
+        # Pages: their answer, the average of their questions (to find related
+        # pages) and their text in passages.
+        self._page_answer, self._page_vectors = {}, {}
+        owners = np.array(owners)
+        for answer in answers.values():
+            if getattr(answer, "page_id", None) and answer.kind in self.PAGE_KINDS:
+                self._page_answer.setdefault(answer.page_id, answer.key)
+                rows = self._embeddings[owners == answer.key]
+                if len(rows):
+                    mean = rows.mean(axis=0)
+                    self._page_vectors[answer.key] = mean / (np.linalg.norm(mean) or 1)
+        try:
+            from .passages import build as build_passages
+            self._all_passages = build_passages() if self.SITE_KNOWLEDGE else []
+        except Exception as error:  # noqa: BLE001 - answers without passages still work
+            print(f"[Chatbot] Page passages skipped: {error}")
+            self._all_passages = []
+        # Words of the pages' text count as known too ("e la batteria?").
+        self._vocabulary = Vocabulary(texts + [p.search_text for p in self._all_passages])
+        self._index_passages(self.ENCODE_BUDGET)
         print(f"[Chatbot] Ready. Indexed {len(questions)} questions "
               f"({int(self._manual_mask.sum())} written by hand, {site_count} answers from the site).")
 
@@ -219,11 +358,15 @@ class ChatbotEngine:
             return None, 0.0, 0.0
         order = candidates[np.argsort(scores[candidates])[::-1]]
         best = int(order[0])
-        second = next((int(i) for i in order[1:] if self._owners[i] != self._owners[best]), None)
+        # Answers about the same page (its description, its FAQs, a Voce
+        # chatbot linked to it) are not rivals: the margin is to another page.
+        group = self._group.get(self._owners[best], self._owners[best])
+        second = next((int(i) for i in order[1:]
+                       if self._group.get(self._owners[i], self._owners[i]) != group), None)
         best_score = float(scores[best])
         return best, best_score, best_score - (float(scores[second]) if second is not None else 0.0)
 
-    def answer_with_scores(self, query: str) -> tuple:
+    def answer_with_scores(self, query: str, vector=None) -> tuple:
         """Same as answer(), plus the numbers behind the decision.
 
         Used by chatbot_test / evaluate_chatbot so THRESHOLD and MARGIN can
@@ -252,8 +395,8 @@ class ChatbotEngine:
                 "entry_id": None, "answer_key": None, "source": "", "link": "",
             }
 
-        vector = self._model.encode([self._normalize_text(query)], convert_to_numpy=True,
-                                    normalize_embeddings=True, show_progress_bar=False)[0]
+        if vector is None:
+            vector = self._encode(query)
         scores = self._embeddings @ vector
 
         m_idx, m_score, m_margin = self._best(scores, self._manual_mask)
@@ -271,7 +414,10 @@ class ChatbotEngine:
                 [(m_idx, m_score, m_margin), (s_idx, s_score, s_margin)], key=lambda t: t[1])
             matched = self._questions[top] if top is not None else None
             reason = "below THRESHOLD" if top_score < self.THRESHOLD else "margin too small"
-            return fallback(reason, top_score, top_margin, matched)
+            picked = self._word_tie_break(query, scores, top_score) if reason == "margin too small" else None
+            if picked is None:
+                return fallback(reason, top_score, top_margin, matched)
+            chosen, score, margin = picked
 
         answer = self._answers[self._owners[chosen]]
         return answer.answer_in("it"), {
@@ -280,6 +426,397 @@ class ChatbotEngine:
             "entry_id": getattr(answer, "entry_id", None), "answer_key": answer.key,
             "source": "" if answer.kind == "entry" else answer.label, "link": answer.link,
         }
+
+    def _subject_passage(self, query, vector, language, chosen):
+        """(passage, score) from another page whose title is a subject of the
+        question that the chosen answer does not cover, or None."""
+        asked = talk.content_stems(query)
+        # What the chosen answer is about: its page title, or for a Voce
+        # chatbot without a page its first question (not all its example
+        # questions: "sensori per frane e ponti" would hide "frane").
+        titles = list((getattr(chosen, "titles", None) or {}).values())
+        own_text = " ".join(titles) if titles else self._title(chosen, "it")
+        leftover = asked - talk.content_stems(own_text)
+        subject = asked - leftover  # the chosen answer's own subject words ("sensori")
+        if not leftover or not subject:
+            return None
+        # The pages the other word names ("Monitoraggio Frane"); a word found
+        # in many titles ("angel") is not a subject.
+        named = [page_id for page_id, key in self._page_answer.items()
+                 if page_id != getattr(chosen, "page_id", None)
+                 and talk.content_stems(" ".join((getattr(self._answers.get(key), "titles", None) or {}).values()))
+                 & leftover]
+        if not named or len(named) > 3:
+            return None
+        best = None
+        for page_id in named:
+            for score, _, passage in self._rank_passages([vector], query, language, page_id):
+                if subject & talk.content_stems(passage.search_text):  # the paragraph that talks about sensors
+                    if score >= self.CONTEXT_MIN and (best is None or score > best[1]):
+                        best = (passage, score)
+                    break
+        return best
+
+    def _word_tie_break(self, query, scores, top_score):
+        """Several answers about as close as each other ("monitorate le frane"
+        ≈ "monitorate i cantieri" for the model, because of the shared verb):
+        the one whose own words (title, example questions) contain the
+        question's subject word wins, if exactly one does. None otherwise."""
+        asked = talk.content_stems(query)
+        if not asked:
+            return None
+        best = {}  # group → (index, score)
+        for index in np.argsort(scores)[::-1][:80]:
+            score = float(scores[index])
+            if score < max(self.THRESHOLD, top_score - self.MARGIN):
+                break
+            group = self._group.get(self._owners[index], self._owners[index])
+            best.setdefault(group, (int(index), score))
+        if len(best) < 2:
+            return None
+        texts = {}
+        for question, owner in zip(self._questions, self._owners):
+            texts.setdefault(owner, []).append(question)
+        found = []
+        for index, score in best.values():
+            answer = self._answers[self._owners[index]]
+            own = " ".join(texts.get(answer.key, []) + list((getattr(answer, "titles", None) or {}).values()))
+            common = len(asked & talk.content_stems(own))
+            found.append((common, score, index))
+        found.sort(reverse=True)
+        if found[0][0] == 0 or found[0][0] == found[1][0]:
+            return None
+        rivals = [score for common, score, _ in found[1:]]
+        return found[0][2], found[0][1], found[0][1] - max(rivals)
+
+    # -- conversation ----------------------------------------------------------
+    def _encode(self, text: str):
+        return self._model.encode([self._normalize_text(text)], convert_to_numpy=True,
+                                  normalize_embeddings=True, show_progress_bar=False)[0]
+
+    def _title(self, answer, language: str) -> str:
+        titles = getattr(answer, "titles", None) or {}
+        title = titles.get(language) or titles.get("it")
+        if title:
+            return title
+        label = getattr(answer, "label", "") or ""
+        return label.split(": ", 1)[-1].replace("[FALLBACK] ", "")
+
+    def _page_passages(self, page_id, language: str):
+        """The page's passages in reading order, in the visitor's language
+        when the page is translated, otherwise in Italian."""
+        own = [p for p in self._passages if p.page_id == page_id]
+        chosen = [p for p in own if p.language == language] or [p for p in own if p.language == "it"]
+        return sorted(chosen, key=lambda p: p.order)
+
+    def _rank_passages(self, vectors, query: str, language: str, page_id=None, exclude=()):
+        """[(score, words in common, passage)], best first. The score is the
+        closeness to the question (best of the given vectors) plus a small
+        bonus for each subject word the passage shares with the question."""
+        if self._p_matrix is None:
+            return []
+        rows = [i for i, p in enumerate(self._passages)
+                if (page_id is None or p.page_id == page_id) and p.id not in exclude]
+        if not rows:
+            return []
+        in_language = [i for i in rows if self._passages[i].language == language]
+        rows = in_language or [i for i in rows if self._passages[i].language == "it"]
+        if not rows:
+            return []
+        matrix = self._p_matrix[rows]
+        scores = np.max(np.stack([matrix @ v for v in vectors]), axis=0)
+        ranked = []
+        for i, score in zip(rows, scores):
+            passage = self._passages[i]
+            common = talk.overlap(query, passage.search_text)
+            ranked.append((float(score) + 0.03 * min(common, 3), common, passage))
+        ranked.sort(key=lambda r: r[0], reverse=True)
+        return ranked
+
+    def _answer_ranking(self, vector):
+        """[(answer key, best score)] over all answers, best first."""
+        scores = self._embeddings @ vector
+        best = {}
+        for index in np.argsort(scores)[::-1][:60]:
+            key = self._owners[index]
+            if key not in best:
+                best[key] = float(scores[index])
+        return sorted(best.items(), key=lambda kv: kv[1], reverse=True)
+
+    def _related(self, key, language: str, limit=2):
+        vector = self._page_vectors.get(key)
+        if vector is None:
+            return []
+        scored = [(float(v @ vector), k) for k, v in self._page_vectors.items() if k != key]
+        scored.sort(reverse=True)
+        chips = []
+        for score, other in scored:
+            if score < self.RELATED_MIN or len(chips) >= limit:
+                break
+            answer = self._answers.get(other)
+            if answer is not None and (language == "it" or (getattr(answer, "titles", {}) or {}).get(language)):
+                chips.append({"type": "ask", "label": self._title(answer, language), "key": other})
+        return chips
+
+    def respond(self, query: str, language: str = "it", context=None, options=None, key=None) -> dict:
+        """One turn of a conversation.
+
+        context: what the chat sent back from the previous answer,
+                 {"key": answer key, "shown": [passage ids already shown]}.
+        options: {"page_text", "related", "contact"} (Impostazioni → Chatbot).
+        key:     the answer of a question picked in a page suggestion or a
+                 button (no matching: exactly that answer).
+
+        Returns {"text", "link", "link_label", "kind", "answer_key", "chips",
+        "context", "meta"}; kind is entry, page, passage, context, more,
+        clarify, fallback, greeting, thanks or unclear.
+        """
+        self._ensure_loaded()
+        language = language if language in ("it", "en", "fr") else "it"
+        options = {"page_text": True, "related": True, "contact": True, **(options or {})}
+        context = context if isinstance(context, dict) else {}
+        current = self._answers.get(str(context.get("key") or ""))
+        shown = {str(i) for i in (context.get("shown") or [])[:60]}
+        current_page = getattr(current, "page_id", None)
+
+        def contact_chip():
+            return [{"type": "contact", "label": talk.text("contact", language)}] if options["contact"] else []
+
+        def result(kind, text, answer=None, link="", chips=None, new_shown=(), meta=None, keep_context=False):
+            key = answer.key if answer is not None else (current.key if (keep_context and current) else None)
+            seen = (shown if (keep_context or (answer is not None and current is not None and answer.key == current.key))
+                    else set()) | set(new_shown)
+            label = self._title(answer, language) if answer is not None and link else ""
+            return {
+                "text": text, "link": link, "link_label": label, "kind": kind,
+                "answer_key": answer.key if answer is not None else None,
+                "chips": chips or [],
+                "context": {"key": key, "shown": sorted(seen)[:40]} if key else {},
+                "meta": {"in_context": current is not None, **(meta or {})},
+            }
+
+        def more_chip(answer, seen):
+            page_id = getattr(answer, "page_id", None)
+            if not options["page_text"] or not page_id:
+                return []
+            left = [p for p in self._page_passages(page_id, language) if p.id not in seen]
+            return [{"type": "more", "label": talk.text("more", language)}] if left else []
+
+        def summary_ids(answer):
+            """Passages that only repeat the answer's own text count as shown."""
+            page_id = getattr(answer, "page_id", None)
+            if not page_id:
+                return set()
+            said = self._normalize_text(answer.answer_in(language))[:200]
+            if not said:
+                return set()
+            return {p.id for p in self._page_passages(page_id, language)
+                    if self._normalize_text(p.text)[:200] in said or said in self._normalize_text(p.text)}
+
+        def page_answer(answer, kind, meta, vectors=None, query_text=""):
+            """The answer's text, plus the paragraph of its page that best fits
+            the question when that adds something."""
+            text = answer.answer_in(language)
+            seen = summary_ids(answer)
+            page_id = getattr(answer, "page_id", None)
+            if options["page_text"] and page_id and vectors is not None:
+                ranked = self._rank_passages(vectors, query_text, language, page_id, exclude=shown | seen)
+                if ranked and ranked[0][0] >= self.EXTRA_MIN and ranked[0][1] >= 1:
+                    text = f"{text}\n\n{ranked[0][2].text}"
+                    seen.add(ranked[0][2].id)
+                    meta = {**meta, "passage": ranked[0][2].id, "passage_score": round(ranked[0][0], 4)}
+            chips = more_chip(answer, shown | seen)
+            if options["related"] and answer.kind in self.PAGE_KINDS:
+                chips += self._related(answer.key, language, limit=2 - min(1, len(chips)))
+            for follow_up in getattr(answer, "follow_ups", []) or []:
+                chips.append({"type": "ask", "label": follow_up})
+            if talk.asks_price(query_text):
+                chips += contact_chip()
+            return result(kind, text, answer, answer.link, chips[:4], seen, meta)
+
+        def passage_answer(passage, score, kind):
+            answer = self._answers.get(self._page_answer.get(passage.page_id, ""))
+            seen = {passage.id}
+            if answer is None:  # a page without its own answer: quote the paragraph only
+                return result(kind, passage.text, None, "", contact_chip() if talk.asks_price(query) else [],
+                              seen, {"passage": passage.id, "passage_score": round(score, 4)})
+            out = result(kind, passage.text, answer, answer.link, [], seen,
+                         {"passage": passage.id, "passage_score": round(score, 4)})
+            out["context"]["shown"] = sorted((shown if (current and current.key == answer.key) else set()) | seen)[:40]
+            chips = more_chip(answer, set(out["context"]["shown"]))
+            if talk.asks_price(query):
+                chips += contact_chip()
+            out["chips"] = chips
+            return out
+
+        if key and str(key) in self._answers:
+            chosen = self._answers[str(key)]
+            return page_answer(chosen, "entry" if chosen.kind == "entry" else "page", {"best_score": 1.0, "picked": True})
+
+        if not (query or "").strip() or self._embeddings is None:
+            return result("fallback", "", chips=contact_chip())
+
+        # 1. "Dimmi di più": the next paragraphs of the page being discussed.
+        if current is not None and current_page and talk.is_more(query):
+            page_id = current_page
+            left = [p for p in self._page_passages(page_id, language) if p.id not in shown] if page_id else []
+            if left:
+                taken = left[:1] if len(left[0].text) > 260 or len(left) == 1 else left[:2]
+                text = "\n\n".join(p.text for p in taken)
+                out = result("more", text, current, current.link, [], [p.id for p in taken], keep_context=True)
+                out["chips"] = more_chip(current, set(out["context"]["shown"]))
+                return out
+            return result("more", talk.text("no_more", language, title=self._title(current, language)),
+                          current, current.link, contact_chip(), keep_context=True)
+
+        kind = classify(query, self._vocabulary, self._known)
+        if kind in ("greeting", "thanks"):
+            return result(kind, "", meta={"special": kind}, keep_context=True)
+        if kind == "unclear":
+            # "ui", "run", "ohoo" during a conversation are not follow-ups.
+            if talk.asks_price(query):
+                if current is not None:
+                    return result("context", talk.text("price", language), current, current.link,
+                                  contact_chip(), keep_context=True)
+                return result("fallback", talk.text("price", language), chips=contact_chip())
+            return result("unclear", "", meta={"special": "unclear"}, keep_context=True)
+
+        vector = self._encode(query)
+        _, meta = self.answer_with_scores(query, vector=vector) if kind != "unclear" else ("", {"used_fallback": True})
+        chosen = None if meta.get("used_fallback") or meta.get("special") else self._answers.get(meta.get("answer_key"))
+        score_meta = {k: meta.get(k) for k in ("best_score", "margin", "matched_question", "reason") if k in meta}
+
+        # 2. A clear answer.
+        if chosen is not None and options["page_text"] and chosen.kind != "list":
+            # "Che sensori usate per le frane?": the general answer (Sensori)
+            # is close, but the question also names another page (Frane)
+            # whose text answers it: that paragraph, with a button to the
+            # general answer.
+            found = self._subject_passage(query, vector, language, chosen)
+            if found is not None:
+                out = passage_answer(found[0], found[1], "passage")
+                out["chips"] = (out["chips"] + [{"type": "ask", "label": self._title(chosen, language),
+                                                 "key": chosen.key}])[:4]
+                return out
+        if chosen is not None:
+            if current is not None and chosen.key == current.key and current_page and options["page_text"]:
+                # Same subject again, more precisely: the paragraph that answers.
+                ranked = self._rank_passages([vector], query, language, current_page, exclude=shown | summary_ids(current))
+                if ranked and ranked[0][0] >= self.CONTEXT_MIN:
+                    return passage_answer(ranked[0][2], ranked[0][0], "context")
+            return page_answer(chosen, "entry" if chosen.kind == "entry" else "page", score_meta, [vector], query)
+
+        # 3. A follow-up about the page being discussed ("e quanto dura la batteria?").
+        if current is not None:
+            title = self._title(current, "it")
+            combined = self._encode(f"{query} {title}")
+            if current_page and options["page_text"]:
+                ranked = self._rank_passages([vector, combined], query, language, current_page, exclude=shown)
+                if ranked and ranked[0][0] >= self.CONTEXT_MIN and (ranked[0][1] >= 1 or talk.short_follow_up(query)):
+                    if talk.asks_price(query) and ranked[0][1] == 0:
+                        return result("context", talk.text("price", language), current, current.link,
+                                      contact_chip(), keep_context=True)
+                    return passage_answer(ranked[0][2], ranked[0][0], "context")
+            if talk.asks_price(query):
+                return result("context", talk.text("price", language), current, current.link,
+                              contact_chip(), keep_context=True)
+            _, again = self.answer_with_scores(f"{query} {title}", vector=combined)
+            other = None if again.get("used_fallback") or again.get("special") else self._answers.get(again.get("answer_key"))
+            if other is not None:
+                return page_answer(other, "context", {**score_meta, "with_context": True}, [combined], query)
+            if kind == "unclear":
+                return result("unclear", "", meta={"special": "unclear"}, keep_context=True)
+
+        # 4. A paragraph somewhere on the site.
+        if options["page_text"]:
+            ranked = self._rank_passages([vector], query, language)
+            if ranked:
+                score, common, passage = ranked[0]
+                same_language = passage.language == language
+                if score >= self.PASSAGE_MIN and (common >= 1 or (not same_language and score >= self.PASSAGE_MIN + 0.08)):
+                    return passage_answer(passage, score, "passage")
+
+        # 5. Two answers equally close: ask which one.
+        # One button per page: the best answer of each page, and two distinct titles at least.
+        ranking, groups = [], set()
+        for k, v in self._answer_ranking(vector):
+            group = self._group.get(k, k)
+            if k in self._answers and group not in groups:
+                groups.add(group)
+                ranking.append((k, v))
+        close, titles = [], set()
+        for k, v in ranking[:4]:
+            title = self._title(self._answers[k], language).strip().lower()
+            if v >= self.CLARIFY_MIN and ranking[0][1] - v < self.MARGIN and title not in titles:
+                titles.add(title)
+                close.append((k, v))
+        close = close[:3]
+        if len(close) >= 2:
+            first, second = (self._answers[k] for k, _ in close[:2])
+            if self._title(first, language).lower() != self._title(second, language).lower():
+                text = talk.text("clarify", language, a=self._title(first, language), b=self._title(second, language)) \
+                    if len(close) == 2 else talk.text("clarify_many", language)
+                chips = [{"type": "ask", "label": self._title(self._answers[k], language), "key": k} for k, _ in close]
+                return result("clarify", text, chips=chips, meta=score_meta, keep_context=True)
+
+        # 6. Nothing close enough.
+        if talk.asks_price(query):
+            return result("fallback", talk.text("price", language), chips=contact_chip(), meta=score_meta,
+                          keep_context=True)
+        return result("fallback", "", chips=contact_chip(), meta=score_meta, keep_context=True)
+
+    def gather_sources(self, query: str, language: str = "it", context=None, limit: int = 8) -> list:
+        """What the site says about the question, for the language model
+        (llm.py): the closest answers (page descriptions, Voci chatbot) and
+        page paragraphs, the page being discussed first.
+        [{"title", "text", "link", "key"}], best first."""
+        self._ensure_loaded()
+        if self._embeddings is None:
+            return []
+        context = context if isinstance(context, dict) else {}
+        current = self._answers.get(str(context.get("key") or ""))
+        vector = self._encode(query)
+        vectors = [vector]
+        if current is not None:
+            vectors.append(self._encode(f"{query} {self._title(current, 'it')}"))
+        sources, seen = [], set()
+
+        def add(title, text, link, key):
+            text = (text or "").strip()
+            norm = self._normalize_text(text)[:300]
+            if text and norm not in seen:
+                seen.add(norm)
+                sources.append({"title": title, "text": text, "link": link or "", "key": key or ""})
+
+        def page_of(passage):
+            answer = self._answers.get(self._page_answer.get(passage.page_id, ""))
+            title = self._title(answer, language) if answer is not None else ""
+            heading = f" — {passage.heading}" if passage.heading else ""
+            return f"{title}{heading}", (answer.link if answer is not None else ""), (answer.key if answer else "")
+
+        # The page being discussed: its description and its closest paragraphs.
+        if current is not None:
+            add(self._title(current, language), current.answer_in(language), current.link, current.key)
+            page_id = getattr(current, "page_id", None)
+            if page_id:
+                for score, _, passage in self._rank_passages(vectors, query, language, page_id)[:2]:
+                    title, link, key = page_of(passage)
+                    add(title, passage.text, link, key)
+        # The closest answers, one per page.
+        groups = set()
+        for key, score in self._answer_ranking(vector)[:12]:
+            answer = self._answers.get(key)
+            group = self._group.get(key, key)
+            if answer is None or group in groups or score < 0.45 or len(groups) >= 4:
+                continue
+            groups.add(group)
+            add(self._title(answer, language), answer.answer_in(language), answer.link, key)
+        # The closest paragraphs anywhere on the site.
+        for score, common, passage in self._rank_passages(vectors, query, language)[:6]:
+            if score >= self.CONTEXT_MIN:
+                title, link, key = page_of(passage)
+                add(title, passage.text, link, key)
+        return sources[:limit]
 
     def site_answers(self):
         """The answers built from the site (for evaluate_chatbot)."""
