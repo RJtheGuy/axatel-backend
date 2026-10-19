@@ -39,7 +39,7 @@ PAGE_MODELS = {
     "services.ServicePage": ("short_description",),
     "home.InfoPage": ("introduction",),
 }
-STREAM_FIELDS = ("intro", "body", "specs")
+STREAM_FIELDS = ("intro", "body", "body_after", "specs")
 
 # Blocks that show other pages, buttons or media: not this page's own words.
 SKIP_BLOCKS = {
