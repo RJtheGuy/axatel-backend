@@ -22,13 +22,18 @@ class Command(BaseCommand):
         parser.add_argument("--to", action="append", default=[], help="Address to send to (repeatable).")
 
     def handle(self, *args, to=(), **options):
-        self.stdout.write(f"Server: {settings.EMAIL_HOST or '(none)'}:{getattr(settings, 'EMAIL_PORT', '')} "
-                          f"SSL={getattr(settings, 'EMAIL_USE_SSL', False)} TLS={getattr(settings, 'EMAIL_USE_TLS', False)} "
-                          f"user={getattr(settings, 'EMAIL_HOST_USER', '') or '(none)'} from={settings.DEFAULT_FROM_EMAIL}")
+        if "mail_graph" in settings.EMAIL_BACKEND:
+            self.stdout.write(f"Microsoft 365 (Graph): mailbox={settings.GRAPH_SENDER} tenant={settings.GRAPH_TENANT_ID} "
+                              f"app={settings.GRAPH_CLIENT_ID} from={settings.DEFAULT_FROM_EMAIL}")
+        else:
+            self.stdout.write(f"Server: {settings.EMAIL_HOST or '(none)'}:{getattr(settings, 'EMAIL_PORT', '')} "
+                              f"SSL={getattr(settings, 'EMAIL_USE_SSL', False)} TLS={getattr(settings, 'EMAIL_USE_TLS', False)} "
+                              f"user={getattr(settings, 'EMAIL_HOST_USER', '') or '(none)'} from={settings.DEFAULT_FROM_EMAIL}")
         if not email_configured():
             self.stderr.write(self.style.ERROR(
-                "E-mail is not configured: add EMAIL_HOST, EMAIL_PORT, EMAIL_USE_SSL or EMAIL_USE_TLS, "
-                "EMAIL_HOST_USER and EMAIL_HOST_PASSWORD to /var/www/axatel/.env, then systemctl restart axatel."))
+                "E-mail is not configured. Microsoft 365: add GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET "
+                "and GRAPH_SENDER to the .env file. Other providers: EMAIL_HOST, EMAIL_PORT, EMAIL_USE_SSL or "
+                "EMAIL_USE_TLS, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD. Then restart the site."))
             return
         for kind, label in ContactSubmission.CONTACT_TYPES:
             self.stdout.write(f"  {label}: {', '.join(recipients_for(kind)) or '(nobody)'}")
@@ -46,7 +51,11 @@ class Command(BaseCommand):
             build_notification(sample, recipients, attach=False).send()
         except Exception as error:  # noqa: BLE001
             self.stderr.write(self.style.ERROR(f"Not sent: {type(error).__name__}: {error}"))
-            self.stderr.write("Check the server name, port, SSL/TLS choice, user and password in .env "
-                              "(many providers need the full address as user and an app password).")
+            if "mail_graph" in settings.EMAIL_BACKEND:
+                self.stderr.write("Check the four GRAPH_ values in .env, that the app has the Mail.Send "
+                                  "application permission with admin consent, and that GRAPH_SENDER is a real mailbox.")
+            else:
+                self.stderr.write("Check the server name, port, SSL/TLS choice, user and password in .env "
+                                  "(many providers need the full address as user and an app password).")
             return
         self.stdout.write(self.style.SUCCESS(f"Sent to {', '.join(recipients)}. Check the inbox (and the spam folder)."))
