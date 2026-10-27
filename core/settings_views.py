@@ -202,34 +202,48 @@ class TeamView(APIView):
 class RedirectsView(APIView):
     """Redirects managed in the CMS (Impostazioni → Reindirizzamenti), for
     the frontend, which serves the pages: [{from, to, permanent}].
-    Wagtail adds one by itself when a published page's slug changes."""
+    Wagtail adds one by itself when a published page's slug changes, and the
+    site adds one when a published page is unpublished or deleted
+    (core/auto_redirects.py).
+
+    ?v=2 (frontend from update 57 on) also gives "live_in": the languages that
+    still have a published page at that address; the frontend redirects only
+    the other languages. Without it, an address used by a published page in
+    any language is left out (older frontends)."""
 
     def get(self, request):
         from wagtail.contrib.redirects.models import Redirect
 
         from wagtail.models import Page
 
+        per_language = request.query_params.get("v") == "2"
         site = Site.find_for_request(request)
         # A redirect never hides a page that exists (e.g. an old /privacy-policy
         # redirect once the new Privacy policy page is published there).
-        pages = {
-            "/" + (page.url_path.split("/", 2)[-1] if page.url_path.count("/") > 1 else "")
-            for page in Page.objects.live().filter(depth__gt=1).only("url_path")
-        }
-        pages = {path.rstrip("/") or "/" for path in pages}
+        live = {}
+        for page in Page.objects.live().filter(depth__gt=1).select_related("locale").only("url_path", "locale__language_code"):
+            path = "/" + (page.url_path.split("/", 2)[-1] if page.url_path.count("/") > 1 else "")
+            live.setdefault(path.rstrip("/") or "/", set()).add(page.locale.language_code)
         rows = []
         for redirect in Redirect.objects.filter(models_q_site(site)).select_related("redirect_page"):
-            if (redirect.old_path.rstrip("/") or "/") in pages:
+            languages = live.get(redirect.old_path.rstrip("/") or "/", set())
+            if languages and not per_language:
                 continue
             target = redirect.link
             if redirect.redirect_page_id:
-                page = redirect.redirect_page.specific
+                page = redirect.redirect_page
                 if not page.live:
-                    continue
-                target = page.url
+                    # Target taken offline: the nearest published page above it.
+                    page = page.get_ancestors().live().filter(depth__gt=1).order_by("-depth").first()
+                    if page is None:
+                        continue
+                target = page.specific.url
             if not target:
                 continue
-            rows.append({"from": redirect.old_path, "to": target, "permanent": redirect.is_permanent})
+            row = {"from": redirect.old_path, "to": target, "permanent": redirect.is_permanent}
+            if per_language:
+                row["live_in"] = sorted(languages)
+            rows.append(row)
         return Response({"redirects": rows})
 
 
