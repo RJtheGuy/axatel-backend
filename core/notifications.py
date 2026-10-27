@@ -43,7 +43,10 @@ def _file_name(field) -> str:
 
 
 def email_configured() -> bool:
-    return bool(getattr(settings, "EMAIL_HOST", "")) and "dummy" not in settings.EMAIL_BACKEND
+    backend = settings.EMAIL_BACKEND
+    if "dummy" in backend:
+        return False
+    return "mail_graph" in backend or bool(getattr(settings, "EMAIL_HOST", ""))
 
 
 def _settings():
@@ -145,7 +148,7 @@ def notify(submission) -> bool:
     recipients = recipients_for(submission.submission_type)
     error = ""
     if not email_configured():
-        error = "E-mail non configurata sul server (EMAIL_HOST nel file .env)."
+        error = "E-mail non configurata sul server (GRAPH_… o EMAIL_HOST nel file .env)."
     elif not recipients:
         error = "Nessun destinatario: Impostazioni → Notifiche moduli (o ADMIN_EMAILS nel .env)."
     else:
