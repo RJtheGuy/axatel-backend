@@ -93,6 +93,15 @@ def tokens(slug: str) -> set[str]:
     return {t for t in re.split(r"[^a-z0-9]+", slug.lower()) if t and t not in STOP}
 
 
+def target_exists(target: str, pages) -> bool:
+    """A page of the site, a frontend address, a document or another site."""
+    if not target.startswith("/"):
+        return True
+    target = normalise(target)
+    return (target in pages or target in FRONTEND_ROUTES or target == "/feed.xml"
+            or target.startswith("/documents/") or target.startswith("/media/"))
+
+
 def similarity(a: str, b: str) -> float:
     ta, tb = tokens(a), tokens(b)
     return len(ta & tb) / len(ta | tb) if ta and tb else 0.0
@@ -205,9 +214,22 @@ class Command(BaseCommand):
             if best and similarity(best[0], stem_clean) >= 0.5:
                 return best[1].url, "media", f"documento simile \"{best[1].title}\""
             return "", "nessuna", "file del vecchio sito: caricalo in Documenti, poi scrivi qui il suo indirizzo"
+        missing = ""
         for pattern, target, confidence, note in RULES:
             if re.match(pattern, old):
-                return target, confidence, note
+                if target_exists(target, pages):
+                    return target, confidence, note
+                missing = target  # the site changed since the rule was written: look for the page below
+                break
+        result = self.match_by_name(old, pages)
+        if missing:
+            target, confidence, note = result
+            if target in ("/", "/prodotti") and confidence == "bassa":
+                return "", "nessuna", f"la pagina prevista ({missing}) non esiste più: scrivi qui la destinazione"
+            return target, "media", f"{note} (la pagina prevista {missing} non esiste più)"
+        return result
+
+    def match_by_name(self, old, pages):
         slug = old.rsplit("/", 1)[-1]
         if old.startswith("/prodotto/"):
             products = {path: page for path, page in pages.items() if page.content_type.model == "productpage"}
@@ -295,6 +317,10 @@ class Command(BaseCommand):
                     skipped += 1
                     continue
                 page = pages.get(target) if target.startswith("/") else None
+                if not target_exists(target, pages):
+                    self.stdout.write(f"  ! {old} → {target}: that page does not exist (or is offline): skipped")
+                    skipped += 1
+                    continue
                 old_path = Redirect.normalise_path(old)
                 existing = Redirect.objects.filter(old_path=old_path, site__isnull=True).first()
                 if existing and not replace:

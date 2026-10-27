@@ -10,10 +10,10 @@ from django.conf import settings
 from django.db import models
 from rest_framework.fields import Field
 from wagtail import blocks
-from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.admin.panels import FieldPanel, HelpPanel, MultiFieldPanel
 from wagtail.api import APIField
 from wagtail.fields import StreamField
-from wagtail.models import Page
+from wagtail.models import Locale, Page
 from wagtail.search import index
 from wagtailseo.models import SeoMixin
 
@@ -49,17 +49,75 @@ class SpecBlock(blocks.StructBlock):
         label = "Specifica"
 
 
-class ProductIndexPage(SeoMixin, Page):
-    """Listing of all products. URL: /prodotti/"""
+LAYOUT_CHOICES = [
+    ("categories", "Raggruppati per categoria (un titolo per gruppo)"),
+    ("single", "Un'unica griglia, senza gruppi"),
+]
+COLUMN_CHOICES = [
+    ("auto", "Automatico (quante ne stanno)"),
+    ("2", "2 per riga"),
+    ("3", "3 per riga"),
+    ("4", "4 per riga"),
+]
+ORDER_HELP = (
+    "<p><b>Ordine dei prodotti</b>: è quello dell'elenco in <i>Pagine → Prodotti</i>. "
+    "Apri l'elenco, scegli <i>Gestisci l'ordine del menu</i> e trascina i prodotti. "
+    "Con i gruppi per categoria, l'ordine vale dentro ogni gruppo.</p>"
+    "<p>Queste impostazioni valgono per tutte le lingue: si cambiano sulla pagina italiana.</p>"
+)
 
-    api_fields = [APIField("intro")]
+
+class ProductIndexPage(SeoMixin, Page):
+    """Listing of all products. URL: /prodotti/
+
+    How the cards are laid out (update 58): grouped by category or one grid,
+    the order of the groups, cards per row. The order of the products is the
+    page order in the CMS (Pagine → Prodotti → "Gestisci l'ordine del menu").
+    """
+
+    api_fields = [APIField("intro"), APIField("display")]
 
     intro = models.TextField(blank=True, verbose_name="Introduzione", help_text="Testo sopra l'elenco dei prodotti.")
+    layout = models.CharField(max_length=20, choices=LAYOUT_CHOICES, default="categories",
+                              verbose_name="Disposizione")
+    category_order = StreamField(
+        [("category", blocks.ChoiceBlock(choices=CATEGORY_CHOICES, label="Categoria"))],
+        use_json_field=True, blank=True, verbose_name="Ordine delle categorie",
+        help_text="Aggiungi le categorie e trascinale nell'ordine voluto. Quelle non elencate vengono dopo. "
+                  "Vuoto = ordine standard (Sistemi, Sensori, Piattaforme, Comunicazione).",
+    )
+    columns = models.CharField(max_length=4, choices=COLUMN_CHOICES, default="auto",
+                               verbose_name="Prodotti per riga",
+                               help_text="Su schermi grandi. Su tablet sono al massimo 2, sul telefono 1.")
 
     parent_page_types = ["home.HomePage"]
     subpage_types = ["products.ProductPage"]
 
-    content_panels = Page.content_panels + [FieldPanel("intro")]
+    content_panels = Page.content_panels + [
+        FieldPanel("intro"),
+        MultiFieldPanel([
+            HelpPanel(content=ORDER_HELP),
+            FieldPanel("layout"),
+            FieldPanel("category_order"),
+            FieldPanel("columns"),
+        ], heading="Disposizione delle card"),
+    ]
+
+    @property
+    def display(self):
+        """Layout settings, always those of the Italian page (all languages
+        show the products the same way)."""
+        source = self
+        default = Locale.get_default()
+        if self.locale_id != default.id:
+            source = self.get_translation_or_none(default) or self
+        order, seen = [], set()
+        for block in source.category_order:
+            if block.value and block.value not in seen:
+                order.append(block.value)
+                seen.add(block.value)
+        return {"layout": source.layout or "categories", "columns": source.columns or "auto",
+                "category_order": order}
     promote_panels = SeoMixin.promote_panels
 
     class Meta:
