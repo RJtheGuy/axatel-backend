@@ -52,8 +52,14 @@ TEXT_STYLE_FEATURES = [
      {"fontFamily": "Montserrat, sans-serif", "fontWeight": "300"}, "u-heading-font"),
     ("font-mono", "FONT_MONO", "</>", "Font a spaziatura fissa (tecnico)",
      {"fontFamily": "monospace"}, "u-mono"),
-    ("size-large", "SIZE_LARGE", "A+", "Testo più grande",
+    # Text sizes, same font: select the text (Ctrl+A for the whole block)
+    # and press M, L or XL; press it again to go back to normal size.
+    ("size-medium", "SIZE_MEDIUM", "M", "Testo medio (un po' più grande)",
+     {"fontSize": "1.125em"}, "u-medium"),
+    ("size-large", "SIZE_LARGE", "L", "Testo grande",
      {"fontSize": "1.25em"}, "u-large"),
+    ("size-xlarge", "SIZE_XLARGE", "XL", "Testo molto grande",
+     {"fontSize": "1.5em"}, "u-xlarge"),
 ]
 
 
@@ -78,6 +84,13 @@ def register_text_style_features(features):
                 "style_map": {style_type: {"element": "span", "props": {"class": css_class}}},
             },
         })
+
+    # M / L / XL also go in the default toolbar: the one used by the "Testo"
+    # block (also inside "Colonne") and by the body of a Caso di successo.
+    # Added at runtime, so no block definition and no migration changes.
+    for name in ("size-medium", "size-large", "size-xlarge"):
+        if name not in features.default_features:
+            features.default_features.append(name)
 
 
 
