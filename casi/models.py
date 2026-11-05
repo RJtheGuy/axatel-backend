@@ -9,11 +9,17 @@ from taggit.models import TaggedItemBase
 from wagtail.admin.panels import FieldPanel, FieldRowPanel, MultiFieldPanel
 from wagtail.api import APIField
 from wagtail.fields import RichTextField
-from wagtail.models import Page
+from wagtail.models import Locale, Page
 from wagtail.search import index
 from wagtailseo.models import SeoMixin
 
 from core.api_blocks import ImageAPIField, TagListField
+
+
+TONES = [
+    ("light", "Chiaro (sfondo bianco)"),
+    ("dark", "Scuro (sfondo blu notte)"),
+]
 
 
 class CasiIndexPage(SeoMixin, Page):
@@ -25,6 +31,7 @@ class CasiIndexPage(SeoMixin, Page):
 
     api_fields = [
         APIField("intro"),
+        APIField("display"),
     ]
 
     intro = models.TextField(
@@ -32,12 +39,35 @@ class CasiIndexPage(SeoMixin, Page):
         verbose_name="Introduzione",
         help_text="Testo mostrato sopra l'elenco dei casi.",
     )
+    # Light or dark background (update 62); the defaults keep the look the
+    # site had: a white list and dark case pages.
+    tone_index = models.CharField(
+        max_length=8, choices=TONES, default="light", verbose_name="Sfondo dell'elenco dei casi",
+    )
+    tone_articles = models.CharField(
+        max_length=8, choices=TONES, default="dark", verbose_name="Sfondo dei singoli casi",
+    )
 
     parent_page_types = ["home.HomePage"]
     subpage_types = ["casi.CasoSuccessoPage"]
 
-    content_panels = Page.content_panels + [FieldPanel("intro")]
+    content_panels = Page.content_panels + [
+        FieldPanel("intro"),
+        MultiFieldPanel([
+            FieldPanel("tone_index"),
+            FieldPanel("tone_articles"),
+        ], heading="Colori", help_text="Vale per tutte le lingue: si cambia sulla pagina italiana."),
+    ]
     promote_panels = SeoMixin.promote_panels
+
+    @property
+    def display(self):
+        """Colour settings, always those of the Italian page."""
+        source = self
+        default = Locale.get_default()
+        if self.locale_id != default.id:
+            source = self.get_translation_or_none(default) or self
+        return {"tone_index": source.tone_index or "light", "tone_articles": source.tone_articles or "dark"}
 
     class Meta:
         verbose_name = "Indice Casi di successo"

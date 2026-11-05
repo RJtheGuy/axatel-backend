@@ -20,6 +20,10 @@ CARDS_PER_ROW = [
     ("3", "3 per riga"),
     ("4", "4 per riga"),
 ]
+TONES = [
+    ("light", "Chiaro (sfondo bianco)"),
+    ("dark", "Scuro (sfondo blu notte)"),
+]
 CARD_TAGS = [
     ("all", "Tutti i tag"),
     ("3", "Al massimo 3 tag"),
@@ -31,8 +35,9 @@ class BlogIndexPage(SeoMixin, Page):
     """
     Blog listing page. URL: /blog/
 
-    How the cards look (update 61): cards per row and the tags on the cards,
-    set on the Italian page and used for every language.
+    How the cards look (update 61): cards per row and the tags on the cards;
+    light or dark background for the list and for the articles (update 62).
+    Set on the Italian page and used for every language.
     """
 
     api_fields = [
@@ -65,6 +70,13 @@ class BlogIndexPage(SeoMixin, Page):
         help_text="I tag restano comunque visibili dentro ogni news.",
     )
 
+    tone_index = models.CharField(
+        max_length=8, choices=TONES, default="light", verbose_name="Sfondo dell'elenco News",
+    )
+    tone_articles = models.CharField(
+        max_length=8, choices=TONES, default="light", verbose_name="Sfondo delle singole news",
+    )
+
     parent_page_types = ["home.HomePage"]
     subpage_types = ["blog.BlogPost"]
     content_panels = Page.content_panels + [
@@ -72,7 +84,9 @@ class BlogIndexPage(SeoMixin, Page):
         MultiFieldPanel([
             FieldPanel("cards_per_row"),
             FieldPanel("card_tags"),
-        ], heading="Disposizione delle card",
+            FieldPanel("tone_index"),
+            FieldPanel("tone_articles"),
+        ], heading="Disposizione e colori",
            help_text="Vale per tutte le lingue: si cambia sulla pagina italiana."),
         MultiFieldPanel([
             FieldPanel("empty_title"),
@@ -89,7 +103,8 @@ class BlogIndexPage(SeoMixin, Page):
         default = Locale.get_default()
         if self.locale_id != default.id:
             source = self.get_translation_or_none(default) or self
-        return {"cards_per_row": source.cards_per_row or "auto", "card_tags": source.card_tags or "all"}
+        return {"cards_per_row": source.cards_per_row or "auto", "card_tags": source.card_tags or "all",
+                "tone_index": source.tone_index or "light", "tone_articles": source.tone_articles or "light"}
 
     class Meta:
         verbose_name = "Indice News"
