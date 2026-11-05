@@ -69,11 +69,6 @@ def recipients_for(kind: str) -> list[str]:
     return list(dict.fromkeys(found))
 
 
-def _admin_link(submission) -> str:
-    base = (getattr(settings, "WAGTAILADMIN_BASE_URL", "") or "").rstrip("/")
-    return f"{base}/django-admin/core/contactsubmission/{submission.pk}/change/" if base else ""
-
-
 def _rows(submission) -> list[tuple[str, str]]:
     rows = [
         ("Tipo", submission.get_submission_type_display()),
@@ -99,15 +94,12 @@ def build_notification(submission, recipients, attach=True) -> EmailMultiAlterna
     who = submission.name + (f" ({submission.company})" if submission.company else "")
     subject = f"[Sito Axatel] {kind} — {who}"
     rows = _rows(submission)
-    link = _admin_link(submission)
     message = submission.message or "—"
 
     text = "\n".join(f"{label}: {value}" for label, value in rows)
     text += f"\n\nMessaggio:\n{message}\n"
     text += ("\nRispondi a questa e-mail per scrivere direttamente a chi ha inviato la richiesta.\n" if submission.email
              else f"\nNessuna e-mail: richiama al numero {submission.phone}.\n")
-    if link:
-        text += f"Nel CMS: {link}\n"
 
     cell = "padding:6px 12px;border-bottom:1px solid #e3e9ef;vertical-align:top;"
     body_rows = "".join(
@@ -125,7 +117,6 @@ def build_notification(submission, recipients, attach=True) -> EmailMultiAlterna
         "<p style='color:#667f97;font-size:12px'>"
         + ("Rispondi a questa e-mail per scrivere direttamente a chi ha inviato la richiesta." if submission.email
            else f"Nessuna e-mail: richiama al numero {html.escape(submission.phone)}.")
-        + (f" <a href='{html.escape(link)}'>Apri nel CMS</a>" if link else "")
         + "</p></div>"
     )
     # "Reply" writes to the visitor; with only a phone number, call them.
