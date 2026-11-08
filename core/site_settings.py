@@ -676,3 +676,36 @@ class SearchEngineSettings(BaseSiteSetting):
 
     class Meta:
         verbose_name = "Motori di ricerca"
+
+
+DOCUMENT_LINK_STYLES = [
+    ("default", "Come gli altri link (com'è oggi)"),
+    ("red", "Rosso, sottolineato, con icona documento"),
+    ("blue", "Blu scuro, sottolineato, con icona documento"),
+    ("button", "Pulsante con icona documento"),
+]
+
+
+@register_setting(icon="doc-full")
+class DocumentLinkSettings(BaseSiteSetting):
+    """How links to PDF/documents behave in the text of every page (the
+    "Testo" block, the body of the Casi) and in the Download block and
+    Certificazioni. The defaults keep the site exactly as it was."""
+
+    open_in_new_tab = models.BooleanField(
+        default=False,
+        verbose_name="Apri i documenti in una nuova scheda",
+        help_text="Il sito resta aperto nella scheda di prima. "
+                  "Se spento, i link nel testo aprono il documento al posto della pagina "
+                  "e il blocco Download lo scarica.",
+    )
+    link_style = models.CharField(
+        max_length=10, choices=DOCUMENT_LINK_STYLES, default="default",
+        verbose_name="Aspetto dei link ai documenti nel testo",
+        help_text="Rende più evidente che il testo si può cliccare.",
+    )
+
+    panels = [FieldPanel("open_in_new_tab"), FieldPanel("link_style")]
+
+    class Meta:
+        verbose_name = "Link ai documenti"
