@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from wagtail.models import Site
 
-from .site_settings import SOCIAL_CHOICES, BrandingSettings, ChatbotSettings, FooterSettings, NavigationSettings, TeamSettings
+from .site_settings import SOCIAL_CHOICES, BrandingSettings, ChatbotSettings, DocumentLinkSettings, FooterSettings, NavigationSettings, TeamSettings
 
 SOCIAL_NAMES = dict(SOCIAL_CHOICES)
 
@@ -74,6 +74,7 @@ class SiteSettingsView(APIView):
         footer = FooterSettings.for_site(site)
         chatbot = ChatbotSettings.for_site(site)
         branding = BrandingSettings.for_site(site)
+        documents = DocumentLinkSettings.for_site(site)
         social = [
             {
                 "network": value.get("network") or "other",
@@ -122,6 +123,10 @@ class SiteSettingsView(APIView):
                 "logo": _file_path(branding.logo),
                 "particle_logo": _file_path(branding.particle_logo) or _file_path(branding.logo),
                 "header_wing": _file_path(branding.header_wing),
+            },
+            "documents": {
+                "open_in_new_tab": documents.open_in_new_tab,
+                "link_style": documents.link_style,
             },
             "chatbot": {
                 "enabled": chatbot.enabled,

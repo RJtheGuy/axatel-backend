@@ -3,7 +3,7 @@ from wagtail.documents.blocks import DocumentChooserBlock as BaseDocumentChooser
 from wagtail.images.blocks import ImageChooserBlock as BaseImageChooserBlock
 from wagtail.blocks import PageChooserBlock as BasePageChooserBlock
 from wagtail.rich_text import expand_db_html
-from core.blocks_shared import _absolutize_media_urls
+from core.blocks_shared import _absolutize_media_urls, document_file_url
 
 class ImageChooserBlock(BaseImageChooserBlock):
     def get_api_representation(self, value, context=None):
@@ -24,10 +24,12 @@ class DocumentChooserBlock(BaseDocumentChooserBlock):
     def get_api_representation(self, value, context=None):
         if not value:
             return None
+        # Wagtail documents have no full_url (only images do): the direct file
+        # address under /media/, made absolute, like DocumentAPIField (update 60).
         return {
             "id": value.id,
             "title": value.title,
-            "url": value.full_url,
+            "url": document_file_url(value),
         }
 
 class PageChooserBlock(BasePageChooserBlock):

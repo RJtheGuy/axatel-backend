@@ -1,5 +1,5 @@
 from wagtail import blocks
-from .api_blocks import ImageChooserBlock
+from .api_blocks import DocumentChooserBlock, ImageChooserBlock
 from .blocks_shared import INLINE_TEXT_FEATURES, ExpandedRichTextBlock
 
 
@@ -105,6 +105,19 @@ class FeatureGridBlock(blocks.StructBlock):
         default="auto", required=False,
         label="Distanza tra i vantaggi",
     )
+    # Space between the heading and what follows it. "small" = today's
+    # look, so grids already saved don't change until an editor picks.
+    heading_gap = blocks.ChoiceBlock(
+        choices=[
+            ("small", "Piccolo (com'è oggi)"),
+            ("medium", "Medio"),
+            ("large", "Grande"),
+            ("xlarge", "Molto grande"),
+        ],
+        default="small", required=False,
+        label="Spazio sotto il titolo",
+        help_text="Distanza tra il titolo della griglia e i titoli dei vantaggi (o il sottotitolo).",
+    )
     features = blocks.ListBlock(FeatureItemBlock())
 
     class Meta:
@@ -129,6 +142,45 @@ class TestimonialBlock(blocks.StructBlock):
     class Meta:
         icon = "openquote"
         label = "Testimonianza"
+
+
+class CertificationItemBlock(blocks.StructBlock):
+    logo = ImageChooserBlock(required=False, label="Logo del certificato")
+    title = ExpandedRichTextBlock(
+        max_length=80, features=INLINE_TEXT_FEATURES, label="Nome",
+        help_text="Es. ISO 9001:2015",
+    )
+    text = ExpandedRichTextBlock(
+        max_length=300, required=False, features=INLINE_TEXT_FEATURES,
+        label="Testo (facoltativo)",
+        help_text="Es. Sistema di gestione per la qualità.",
+    )
+    document = DocumentChooserBlock(
+        required=False, label="Certificato PDF (facoltativo)",
+        help_text="Se scelto, cliccando il certificato si apre il PDF.",
+    )
+
+    class Meta:
+        icon = "success"
+        label = "Certificato"
+
+
+class CertificationsBlock(blocks.StructBlock):
+    heading = ExpandedRichTextBlock(
+        max_length=120, required=False, features=INLINE_TEXT_FEATURES,
+        label="Titolo (facoltativo)", help_text="Es. Certificazioni",
+    )
+    columns = blocks.ChoiceBlock(
+        choices=[("1", "1 per riga"), ("2", "2 per riga"), ("3", "3 per riga"), ("4", "4 per riga")],
+        default="3", required=False,
+        label="Certificati per riga",
+        help_text="Quelli in più vanno a capo nella riga sotto. Su tablet e cellulare il numero si riduce da solo.",
+    )
+    items = blocks.ListBlock(CertificationItemBlock(), label="Certificati")
+
+    class Meta:
+        icon = "success"
+        label = "Certificazioni"
 
 
 class PartnerLogosBlock(blocks.StructBlock):

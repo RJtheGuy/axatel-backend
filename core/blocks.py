@@ -12,6 +12,7 @@ from .blocks_sections import (
     TestimonialBlock,
     PartnerLogosBlock,
     PortfolioGridBlock,
+    CertificationsBlock,
 )
 from .blocks_shared import SECTION_VARIANT_CHOICES, INLINE_TEXT_FEATURES, ExpandedRichTextBlock
 from .blocks_solutions import (
@@ -163,6 +164,7 @@ BODY_BLOCKS = [
     ("feature_grid", FeatureGridBlock()),
     ("testimonial", TestimonialBlock()),
     ("partner_logos", PartnerLogosBlock()),
+    ("certifications", CertificationsBlock()),
     ("portfolio_grid", PortfolioGridBlock()),
     # Structured solution / product page blocks (core/blocks_solutions.py)
     ("text_section", TextSectionBlock()),
