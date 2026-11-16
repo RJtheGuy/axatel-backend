@@ -17,7 +17,7 @@ from wagtail.models import Locale, Page
 from wagtail.search import index
 from wagtailseo.models import SeoMixin
 
-from core.api_blocks import ImageAPIField
+from core.api_blocks import DocumentChooserBlock, ImageAPIField
 from core.blocks import BODY_BLOCKS
 
 CATEGORY_CHOICES = [
@@ -47,6 +47,62 @@ class SpecBlock(blocks.StructBlock):
     class Meta:
         icon = "list-ul"
         label = "Specifica"
+
+
+class ProductLinkBlock(blocks.StructBlock):
+    """A button under the product picture: a file (PDF…) or a link."""
+
+    label = blocks.CharBlock(max_length=80, label="Testo del pulsante",
+                             help_text="Es. 'Scarica la brochure' o 'Guarda il video'.")
+    document = DocumentChooserBlock(
+        required=False, label="File (PDF…)",
+        help_text="Scegli o carica un file. Se scelto, il link qui sotto è ignorato.")
+    url = blocks.CharBlock(
+        max_length=400, required=False, label="Oppure un link",
+        help_text="Pagina del sito (es. /contatti) o sito esterno (es. https://…).")
+    open_in_new_tab = blocks.BooleanBlock(
+        required=False, default=True, label="Apri in una nuova scheda",
+        help_text="Il sito resta aperto nella scheda di prima.")
+    background = blocks.ChoiceBlock(
+        choices=[
+            ("red", "Rosso Axatel"),
+            ("navy", "Blu notte"),
+            ("ivory", "Avorio"),
+            ("white", "Bianco"),
+            ("none", "Nessuno (solo testo)"),
+        ],
+        default="red", label="Sfondo del pulsante")
+    text_color = blocks.ChoiceBlock(
+        choices=[
+            ("auto", "Automatico (leggibile sullo sfondo scelto)"),
+            ("white", "Bianco"),
+            ("ivory", "Avorio"),
+            ("navy", "Blu notte"),
+            ("red", "Rosso Axatel"),
+        ],
+        default="auto", label="Colore del testo")
+    font = blocks.ChoiceBlock(
+        choices=[
+            ("normal", "Normale"),
+            ("heading", "Font dei titoli (leggero)"),
+            ("mono", "Tecnico (spaziatura fissa)"),
+        ],
+        default="normal", label="Font")
+    size = blocks.ChoiceBlock(
+        choices=[("small", "Piccolo"), ("normal", "Normale"), ("large", "Grande")],
+        default="normal", label="Dimensione")
+
+    class Meta:
+        icon = "link"
+        label = "Pulsante"
+
+
+LINKS_ALIGN_CHOICES = [
+    ("left", "A sinistra"),
+    ("center", "Al centro"),
+    ("right", "A destra"),
+    ("full", "A tutta larghezza (uno sotto l'altro)"),
+]
 
 
 LAYOUT_CHOICES = [
@@ -134,6 +190,8 @@ class ProductPage(SeoMixin, Page):
         APIField("datasheet", serializer=DocumentAPIField()),
         APIField("datasheet_url"),
         APIField("body"),
+        APIField("media_links"),
+        APIField("media_links_align"),
     ]
 
     model_code = models.CharField(max_length=80, blank=True, verbose_name="Modello / codice",
@@ -149,6 +207,11 @@ class ProductPage(SeoMixin, Page):
     datasheet_url = models.URLField(max_length=400, blank=True, verbose_name="Scheda tecnica (link esterno)",
                                     help_text="Usato solo se non è caricato un PDF qui sopra.")
     body = StreamField(BODY_BLOCKS, use_json_field=True, blank=True, verbose_name="Contenuto")
+    # Buttons under the picture (files or links), styled from the CMS.
+    media_links = StreamField([("link", ProductLinkBlock())], use_json_field=True, blank=True,
+                              verbose_name="Pulsanti")
+    media_links_align = models.CharField(max_length=10, choices=LINKS_ALIGN_CHOICES, default="center",
+                                         verbose_name="Allineamento dei pulsanti")
 
     search_fields = Page.search_fields + [
         index.SearchField("model_code"),
@@ -166,6 +229,12 @@ class ProductPage(SeoMixin, Page):
             FieldPanel("tagline"),
             FieldPanel("cover_image"),
         ], heading="Scheda prodotto"),
+        MultiFieldPanel(
+            [FieldPanel("media_links"), FieldPanel("media_links_align")],
+            heading="Pulsanti sotto l'immagine",
+            help_text="File (PDF…) o link mostrati sotto la foto del prodotto. "
+                      "Senza foto, compaiono sotto i pulsanti del testo.",
+        ),
         FieldPanel("specs"),
         MultiFieldPanel([FieldPanel("datasheet"), FieldPanel("datasheet_url")], heading="Scheda tecnica"),
         FieldPanel("body"),
