@@ -100,14 +100,86 @@ class ServiceCardsBlock(blocks.StructBlock):
         label = "Card servizi (selezione manuale)"
 
 
+class DownloadBlock(blocks.StructBlock):
+    document = DocumentChooserBlock(required=True)
+    label = ExpandedRichTextBlock(max_length=120, required=False, features=INLINE_TEXT_FEATURES)
+
+    class Meta:
+        icon = "doc-full-inverse"
+        label = "Download"
+
+
+class LinkButtonBlock(blocks.StructBlock):
+    """"Pulsante": a file (PDF…) or a link, styled in the CMS. Can go
+    anywhere in Contenuto, also inside "Due colonne" under an image."""
+
+    label = blocks.CharBlock(max_length=80, label="Testo del pulsante",
+                             help_text="Es. 'Scarica la brochure' o 'Guarda il video'.")
+    document = DocumentChooserBlock(
+        required=False, label="File (PDF…)",
+        help_text="Scegli o carica un file. Se scelto, il link qui sotto è ignorato.")
+    url = blocks.CharBlock(
+        max_length=400, required=False, label="Oppure un link",
+        help_text="Pagina del sito (es. /contatti) o sito esterno (es. https://…).")
+    open_in_new_tab = blocks.BooleanBlock(
+        required=False, default=True, label="Apri in una nuova scheda",
+        help_text="Il sito resta aperto nella scheda di prima.")
+    background = blocks.ChoiceBlock(
+        choices=[
+            ("red", "Rosso Axatel"),
+            ("navy", "Blu notte"),
+            ("ivory", "Avorio"),
+            ("white", "Bianco"),
+            ("none", "Nessuno (solo testo)"),
+        ],
+        default="red", label="Sfondo del pulsante")
+    text_color = blocks.ChoiceBlock(
+        choices=[
+            ("auto", "Automatico (leggibile sullo sfondo scelto)"),
+            ("white", "Bianco"),
+            ("ivory", "Avorio"),
+            ("navy", "Blu notte"),
+            ("red", "Rosso Axatel"),
+        ],
+        default="auto", label="Colore del testo")
+    font = blocks.ChoiceBlock(
+        choices=[
+            ("normal", "Normale"),
+            ("heading", "Font dei titoli (leggero)"),
+            ("mono", "Tecnico (spaziatura fissa)"),
+        ],
+        default="normal", label="Font")
+    size = blocks.ChoiceBlock(
+        choices=[("small", "Piccolo"), ("normal", "Normale"), ("large", "Grande")],
+        default="normal", label="Dimensione")
+    align = blocks.ChoiceBlock(
+        choices=[
+            ("center", "Al centro"),
+            ("left", "A sinistra"),
+            ("right", "A destra"),
+            ("full", "A tutta larghezza"),
+        ],
+        default="center", label="Allineamento")
+
+    class Meta:
+        icon = "link"
+        label = "Pulsante"
+
+
 class ColumnsBlock(blocks.StructBlock):
+    # Besides text and images, a column can hold a "Pulsante" (file or
+    # link) or a "Download", e.g. right under an image.
     left = blocks.StreamBlock([
         ("rich_text", RichTextBlock()),
         ("image", ImageBlock()),
+        ("link_button", LinkButtonBlock()),
+        ("download", DownloadBlock()),
     ], required=False)
     right = blocks.StreamBlock([
         ("rich_text", RichTextBlock()),
         ("image", ImageBlock()),
+        ("link_button", LinkButtonBlock()),
+        ("download", DownloadBlock()),
     ], required=False)
 
     class Meta:
@@ -122,15 +194,6 @@ class VideoEmbedBlock(blocks.StructBlock):
     class Meta:
         icon = "media"
         label = "Video"
-
-
-class DownloadBlock(blocks.StructBlock):
-    document = DocumentChooserBlock(required=True)
-    label = ExpandedRichTextBlock(max_length=120, required=False, features=INLINE_TEXT_FEATURES)
-
-    class Meta:
-        icon = "doc-full-inverse"
-        label = "Download"
 
 
 class SpacerBlock(blocks.StructBlock):
@@ -157,6 +220,7 @@ BODY_BLOCKS = [
     ("columns", ColumnsBlock()),
     ("video_embed", VideoEmbedBlock()),
     ("download", DownloadBlock()),
+    ("link_button", LinkButtonBlock()),
     ("spacer", SpacerBlock()),
     ("stats", StatsBlock()),
     ("network_diagram", NetworkDiagramBlock()),
