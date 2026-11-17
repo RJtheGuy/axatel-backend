@@ -1,5 +1,5 @@
 from wagtail import blocks
-from .api_blocks import DocumentChooserBlock, ImageChooserBlock
+from .api_blocks import DocumentChooserBlock, ImageChooserBlock, PageChooserBlock
 from .blocks_shared import INLINE_TEXT_FEATURES, ExpandedRichTextBlock
 
 
@@ -181,6 +181,75 @@ class CertificationsBlock(blocks.StructBlock):
     class Meta:
         icon = "success"
         label = "Certificazioni"
+
+
+class HotspotBlock(blocks.StructBlock):
+    """One clickable, pulsing point on an "Immagine interattiva"."""
+
+    x = blocks.FloatBlock(
+        min_value=0, max_value=100, label="Posizione orizzontale (%)",
+        help_text="0 = bordo sinistro, 100 = bordo destro. Per trovarla: apri la pagina "
+                  "aggiungendo ?posizione in fondo all'indirizzo e clicca sull'immagine.")
+    y = blocks.FloatBlock(
+        min_value=0, max_value=100, label="Posizione verticale (%)",
+        help_text="0 = bordo in alto, 100 = bordo in basso.")
+    title = blocks.CharBlock(max_length=80, label="Titolo", help_text="Es. Monitoraggio frane")
+    text = ExpandedRichTextBlock(
+        max_length=500, required=False, features=INLINE_TEXT_FEATURES, label="Testo")
+    page = PageChooserBlock(required=False, label="Pagina collegata (facoltativa)")
+    url = blocks.CharBlock(
+        max_length=400, required=False, label="Oppure un link",
+        help_text="Usato solo se non è scelta una pagina. Es. /contatti o https://…")
+    link_label = blocks.CharBlock(
+        max_length=40, required=False, label="Testo del link",
+        help_text="Vuoto = 'Scopri di più'.")
+
+    class Meta:
+        icon = "pick"
+        label = "Punto"
+
+
+class InteractiveImageBlock(blocks.StructBlock):
+    """Image with pulsing points: click a point to read about it
+    (like the VEGA "Servizi digitali" page)."""
+
+    heading = ExpandedRichTextBlock(
+        max_length=120, required=False, features=INLINE_TEXT_FEATURES,
+        label="Titolo (facoltativo)", help_text="Mostrato nel pannello prima di cliccare un punto.")
+    intro = ExpandedRichTextBlock(
+        max_length=800, required=False, features=INLINE_TEXT_FEATURES,
+        label="Testo iniziale (facoltativo)")
+    hint = blocks.CharBlock(
+        max_length=80, required=False, label="Suggerimento",
+        help_text="Vuoto = 'Clicca sui punti dell'immagine per scoprire di più'.")
+    image = ImageChooserBlock(label="Immagine")
+    alt_text = blocks.CharBlock(max_length=250, required=False, label="Testo alternativo")
+    layout = blocks.ChoiceBlock(
+        choices=[
+            ("panel", "Pannello di testo a sinistra (il testo cambia cliccando un punto)"),
+            ("full", "Immagine a tutta larghezza (si apre una scheda vicino al punto)"),
+        ],
+        default="panel", label="Disposizione")
+    marker = blocks.ChoiceBlock(
+        choices=[
+            ("ring", "Anello pulsante (attorno alle icone già presenti nell'immagine)"),
+            ("dot", "Punto pieno pulsante"),
+        ],
+        default="ring", label="Aspetto dei punti")
+    marker_size = blocks.ChoiceBlock(
+        choices=[("small", "Piccolo"), ("medium", "Medio"), ("large", "Grande")],
+        default="medium", label="Dimensione dei punti")
+    color = blocks.ChoiceBlock(
+        choices=[("blue", "Azzurro"), ("red", "Rosso Axatel"), ("white", "Bianco"), ("yellow", "Giallo")],
+        default="blue", label="Colore dei punti")
+    motion = blocks.BooleanBlock(
+        required=False, default=True, label="Movimento lento dell'immagine",
+        help_text="Un leggero zoom continuo. I punti pulsano comunque.")
+    hotspots = blocks.ListBlock(HotspotBlock(), label="Punti")
+
+    class Meta:
+        icon = "image"
+        label = "Immagine interattiva"
 
 
 class PartnerLogosBlock(blocks.StructBlock):
