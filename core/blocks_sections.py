@@ -203,6 +203,10 @@ class HotspotBlock(blocks.StructBlock):
     link_label = blocks.CharBlock(
         max_length=40, required=False, label="Testo del link",
         help_text="Vuoto = 'Scopri di più'.")
+    detail_image = ImageChooserBlock(
+        required=False, label="Immagine di dettaglio (facoltativa)",
+        help_text="Compare con lo zoom al clic, es. un rendering 3D o una foto "
+                  "dell'installazione. Vuota = si ingrandisce solo l'immagine principale.")
 
     class Meta:
         icon = "pick"
@@ -245,6 +249,21 @@ class InteractiveImageBlock(blocks.StructBlock):
     motion = blocks.BooleanBlock(
         required=False, default=True, label="Movimento lento dell'immagine",
         help_text="Un leggero zoom continuo. I punti pulsano comunque.")
+    zoom = blocks.ChoiceBlock(
+        choices=[
+            ("medium", "Medio"),
+            ("light", "Leggero"),
+            ("strong", "Forte"),
+            ("none", "Nessuno (solo il testo cambia)"),
+        ],
+        default="medium", label="Zoom al clic",
+        help_text="Cliccando un punto l'immagine si avvicina a quel punto.")
+    width = blocks.ChoiceBlock(
+        choices=[
+            ("wide", "Larga (esce dalla colonna del testo, fino a 1280 px)"),
+            ("normal", "Come il testo della pagina"),
+        ],
+        default="wide", label="Larghezza")
     hotspots = blocks.ListBlock(HotspotBlock(), label="Punti")
 
     class Meta:
