@@ -157,7 +157,7 @@ class CertificationItemBlock(blocks.StructBlock):
     )
     document = DocumentChooserBlock(
         required=False, label="Certificato PDF (facoltativo)",
-        help_text="Se scelto, cliccando il certificato si apre il PDF.",
+        help_text="Se scelto, cliccando il certificato si apre il PDF in una nuova scheda.",
     )
 
     class Meta:
@@ -171,10 +171,12 @@ class CertificationsBlock(blocks.StructBlock):
         label="Titolo (facoltativo)", help_text="Es. Certificazioni",
     )
     columns = blocks.ChoiceBlock(
-        choices=[("1", "1 per riga"), ("2", "2 per riga"), ("3", "3 per riga"), ("4", "4 per riga")],
+        choices=[("1", "1 alla volta"), ("2", "2 alla volta"), ("3", "3 alla volta"),
+                 ("4", "4 alla volta"), ("5", "5 alla volta")],
         default="3", required=False,
-        label="Certificati per riga",
-        help_text="Quelli in più vanno a capo nella riga sotto. Su tablet e cellulare il numero si riduce da solo.",
+        label="Certificati visibili insieme",
+        help_text="Quanti certificati si vedono in una riga. Se sono di più, compaiono le frecce "
+                  "per scorrere avanti e indietro. Su tablet e cellulare il numero si riduce da solo.",
     )
     items = blocks.ListBlock(CertificationItemBlock(), label="Certificati")
 
