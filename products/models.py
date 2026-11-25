@@ -159,9 +159,11 @@ class ProductIndexPage(SeoMixin, Page):
     # Pictures on the cards (update 74).
     card_image_height = models.PositiveSmallIntegerField(
         null=True, blank=True, validators=[MinValueValidator(30), MaxValueValidator(100)],
-        verbose_name="Altezza delle immagini nelle card (%)",
-        help_text="In percentuale della larghezza della card, da 30 a 100. Es. 50 = alta la metà della "
-                  "larghezza, 75 = formato 4:3, 100 = quadrata. Vuoto = come oggi (190 px).",
+        verbose_name="Altezza dello spazio per l'immagine nelle card (%)",
+        help_text="Lo spazio in cima a ogni card, uguale per tutte, in percentuale della larghezza della card "
+                  "(da 30 a 100). Es. 50 = alto la metà della larghezza, 75 = formato 4:3, 100 = quadrato. "
+                  "Vuoto = come oggi (190 px). Per spostare o ingrandire l'immagine di un singolo prodotto "
+                  "usa «Immagine nella card: larghezza / altezza» nella sua pagina.",
     )
     card_image_fit = models.CharField(
         max_length=8, choices=CARD_FIT_CHOICES, default="cover",
@@ -265,10 +267,17 @@ class ProductPage(SeoMixin, Page):
         verbose_name="Immagine nella card: adattamento",
     )
     card_image_width = models.PositiveSmallIntegerField(
-        null=True, blank=True, validators=[MinValueValidator(20), MaxValueValidator(100)],
+        null=True, blank=True, validators=[MinValueValidator(20), MaxValueValidator(300)],
         verbose_name="Immagine nella card: larghezza (%)",
-        help_text="Da 20 a 100: rimpicciolisce l'immagine dentro il suo spazio (utile con «Immagine intera»). "
-                  "Vuoto = 100. L'altezza dello spazio è la stessa per tutte le card: si imposta sulla pagina Prodotti.",
+        help_text="Larghezza dell'immagine rispetto al suo spazio nella card, da 20 a 300. "
+                  "Vuoto = 100 (larga quanto la card). Meno di 100 = più stretta, più di 100 = ingrandita.",
+    )
+    card_image_height = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=[MinValueValidator(20), MaxValueValidator(300)],
+        verbose_name="Immagine nella card: altezza (%)",
+        help_text="Altezza dell'immagine rispetto al suo spazio nella card, da 20 a 300. "
+                  "Vuoto = 100 (alta quanto lo spazio). Più di 100 = si vede la parte alta dell'immagine, "
+                  "più grande; il resto viene tagliato. Es. 170.",
     )
     tagline = models.TextField(max_length=300, blank=True, verbose_name="Descrizione breve (card)",
                                help_text="Mostrata nelle card e usata come meta description se il tab Promuovi è vuoto.")
@@ -309,6 +318,7 @@ class ProductPage(SeoMixin, Page):
             FieldPanel("cover_position"),
             FieldPanel("card_image_fit"),
             FieldPanel("card_image_width"),
+            FieldPanel("card_image_height"),
             FieldPanel("show_intro"),
         ], heading="Scheda prodotto"),
         FieldPanel("available_models"),
@@ -337,7 +347,8 @@ class ProductPage(SeoMixin, Page):
     def card_image(self):
         """Card picture settings, those of the Italian page ('' / None = page default)."""
         source = _translation_source(self)
-        return {"fit": source.card_image_fit or "", "width": source.card_image_width}
+        return {"fit": source.card_image_fit or "", "width": source.card_image_width,
+                "height": source.card_image_height}
 
     @property
     def category_label(self):
