@@ -1,7 +1,8 @@
 """Products already presented on the site (monitoring pages and datasheet
 links), used once by `manage.py seed_products`. Specs contain only facts
 stated in the site's own text; complete them in the CMS.
-Edit products in the CMS, not here."""
+Edit products in the CMS, not here.
+Categories (update 73) are a first suggestion; "" = to choose in the CMS."""
 
 GEO_CASES = [
     "geo-angel-il-sistema-di-axatel-di-nuovo-in-azione",
@@ -13,7 +14,7 @@ DEFAULT_PRODUCTS = [
     {
         "slug": "angel-bpm",
         "title": "Angel BPM",
-        "category": "piattaforme",
+        "category": "",
         "tagline": "Il cuore software per gestire traffico, IoT, meteo, video e manutenzione con dati in tempo reale e processi guidati.",
         "image": "Angel.png",
         "datasheet_url": "",
@@ -28,7 +29,7 @@ DEFAULT_PRODUCTS = [
     {
         "slug": "angel-river",
         "title": "Angel River",
-        "category": "sistemi",
+        "category": "idrogeologico",
         "tagline": "Sistema per monitorare corsi d'acqua e bacini, con rilevamento dei livelli e allerta di emergenza.",
         "image": "AngelRiver.png",
         "datasheet_url": "https://www.axatel.it/wp-content/uploads/2026/03/2025_ANGEL-RIVER.pdf",
@@ -44,7 +45,7 @@ DEFAULT_PRODUCTS = [
     {
         "slug": "geo-angel",
         "title": "Geo Angel",
-        "category": "sistemi",
+        "category": "idrogeologico",
         "tagline": "Sistema real-time per il monitoraggio dei dissesti geologici e l'automazione delle procedure di emergenza.",
         "image": "GeoAngel.png",
         "datasheet_url": "https://www.axatel.it/wp-content/uploads/2026/03/2026_GEO-ANGEL.pdf",
@@ -59,7 +60,7 @@ DEFAULT_PRODUCTS = [
     {
         "slug": "traffic-alert",
         "title": "Traffic Alert",
-        "category": "sistemi",
+        "category": "stradale",
         "tagline": "Sistema di videoanalisi real-time per generare e gestire allarmi relativi al traffico stradale.",
         "image": "TrafficAlert.png",
         "datasheet_url": "https://www.axatel.it/wp-content/uploads/2026/03/traffic-alert.pdf",
@@ -77,7 +78,7 @@ DEFAULT_PRODUCTS = [
     {
         "slug": "angel-road-site",
         "title": "Angel Road Site",
-        "category": "sistemi",
+        "category": "lavoratori",
         "tagline": "Sistema real-time per il tracciamento e il controllo dello stato di sicurezza nei cantieri stradali.",
         "image": "AngelRoadsite.png",
         "datasheet_url": "https://www.axatel.it/wp-content/uploads/2026/03/2026_ANGEL-ROAD-SITE.pdf",
@@ -93,7 +94,7 @@ DEFAULT_PRODUCTS = [
     {
         "slug": "angel-bridge",
         "title": "Angel Bridge",
-        "category": "sistemi",
+        "category": "strutturale",
         "tagline": "Sistema hardware e software per il monitoraggio strutturale di ponti, cavalcavia, edifici e monumenti mediante tecnologia radio LoRaWAN.",
         "image": "AngelBridge.png",
         "datasheet_url": "https://www.axatel.it/wp-content/uploads/2026/03/2026_ANGEL-BRIDGE.pdf",
@@ -109,7 +110,7 @@ DEFAULT_PRODUCTS = [
     {
         "slug": "cerere-pro-aria",
         "title": "Cerere Pro Aria",
-        "category": "sensori",
+        "category": "ambiente",
         "tagline": "Sistema radio LoRaWAN per rilevare in tempo reale gli inquinanti atmosferici e rendere disponibili i dati alla piattaforma di supervisione.",
         "image": "",
         "datasheet_url": "https://www.axatel.it/wp-content/uploads/2026/03/2025_CERERE-PRO-ARIA-PALO.pdf",

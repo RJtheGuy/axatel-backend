@@ -20,11 +20,59 @@ from wagtailseo.models import SeoMixin
 from core.api_blocks import ImageAPIField
 from core.blocks import BODY_BLOCKS
 
+# Product categories (update 73, Marco's list). The key is stored on each
+# product; the labels are shown on the site in the page's language. To add a
+# category: add one line here and one in CATEGORY_LABELS, then
+# `manage.py makemigrations products`.
 CATEGORY_CHOICES = [
-    ("sistemi", "Sistemi di monitoraggio"),
-    ("sensori", "Sensori e stazioni"),
-    ("piattaforme", "Piattaforme software"),
-    ("comunicazione", "Gateway e comunicazione"),
+    ("lavoratori", "Protezione lavoratori"),
+    ("idrogeologico", "Dissesto idrogeologico"),
+    ("ambiente", "Ambiente - Verde"),
+    ("strutturale", "Strutturale"),
+    ("predittiva", "Manutenzione predittiva"),
+    ("stradale", "Stradale"),
+    ("lorawan", "Rete LoRaWAN"),
+    ("master-slave", "Master-Slave-Box"),
+    ("edili", "Opere edili accessorie"),
+]
+CATEGORY_LABELS = {
+    "it": dict(CATEGORY_CHOICES),
+    "en": {
+        "lavoratori": "Worker protection",
+        "idrogeologico": "Hydrogeological instability",
+        "ambiente": "Environment - Green",
+        "strutturale": "Structural",
+        "predittiva": "Predictive maintenance",
+        "stradale": "Roads",
+        "lorawan": "LoRaWAN network",
+        "master-slave": "Master-Slave-Box",
+        "edili": "Ancillary building works",
+    },
+    "fr": {
+        "lavoratori": "Protection des travailleurs",
+        "idrogeologico": "Instabilité hydrogéologique",
+        "ambiente": "Environnement - Espaces verts",
+        "strutturale": "Structurel",
+        "predittiva": "Maintenance prédictive",
+        "stradale": "Routier",
+        "lorawan": "Réseau LoRaWAN",
+        "master-slave": "Master-Slave-Box",
+        "edili": "Travaux de construction annexes",
+    },
+}
+
+
+def category_label(key, language="it"):
+    """Label of a category in a language (Italian if missing); '' for an unknown key."""
+    labels = CATEGORY_LABELS.get((language or "it")[:2], CATEGORY_LABELS["it"])
+    return labels.get(key) or CATEGORY_LABELS["it"].get(key, "")
+
+
+# Where the product picture goes on the product page (same choice as the
+# "Immagine nella pagina" of the informative pages).
+COVER_POSITION_CHOICES = [
+    ("side", "Accanto alla descrizione (com'è oggi)"),
+    ("top", "Grande, in apertura (come nei casi di successo)"),
 ]
 
 
@@ -75,7 +123,7 @@ class ProductIndexPage(SeoMixin, Page):
     page order in the CMS (Pagine → Prodotti → "Gestisci l'ordine del menu").
     """
 
-    api_fields = [APIField("intro"), APIField("display")]
+    api_fields = [APIField("intro"), APIField("display"), APIField("categories")]
 
     intro = models.TextField(blank=True, verbose_name="Introduzione", help_text="Testo sopra l'elenco dei prodotti.")
     layout = models.CharField(max_length=20, choices=LAYOUT_CHOICES, default="categories",
@@ -84,7 +132,8 @@ class ProductIndexPage(SeoMixin, Page):
         [("category", blocks.ChoiceBlock(choices=CATEGORY_CHOICES, label="Categoria"))],
         use_json_field=True, blank=True, verbose_name="Ordine delle categorie",
         help_text="Aggiungi le categorie e trascinale nell'ordine voluto. Quelle non elencate vengono dopo. "
-                  "Vuoto = ordine standard (Sistemi, Sensori, Piattaforme, Comunicazione).",
+                  "Vuoto = ordine standard (quello dell'elenco delle categorie). Vale anche per la barra "
+                  "delle categorie in cima all'elenco.",
     )
     columns = models.CharField(max_length=4, choices=COLUMN_CHOICES, default="auto",
                                verbose_name="Prodotti per riga",
@@ -118,6 +167,18 @@ class ProductIndexPage(SeoMixin, Page):
                 seen.add(block.value)
         return {"layout": source.layout or "categories", "columns": source.columns or "auto",
                 "category_order": order}
+
+    @property
+    def categories(self):
+        """All categories in display order ("Ordine delle categorie", then the
+        standard order), with their label in this page's language. The site
+        builds the category bar from this and shows only those with products."""
+        valid = [key for key, _ in CATEGORY_CHOICES]
+        chosen = [key for key in self.display["category_order"] if key in valid]
+        language = self.locale.language_code if self.locale_id else "it"
+        return [{"key": key, "label": category_label(key, language)}
+                for key in chosen + [k for k in valid if k not in chosen]]
+
     promote_panels = SeoMixin.promote_panels
 
     class Meta:
@@ -127,7 +188,11 @@ class ProductIndexPage(SeoMixin, Page):
 class ProductPage(SeoMixin, Page):
     api_fields = [
         APIField("model_code"),
+        APIField("product_codes"),
+        APIField("available_models"),
         APIField("category"),
+        APIField("category_label"),
+        APIField("cover_position"),
         APIField("tagline"),
         APIField("cover_image", serializer=ImageAPIField()),
         APIField("specs"),
@@ -137,9 +202,29 @@ class ProductPage(SeoMixin, Page):
         APIField("show_intro"),
     ]
 
-    model_code = models.CharField(max_length=80, blank=True, verbose_name="Modello / codice",
-                                  help_text="Es. 'AXE-STD-LR-2'. Lascia vuoto se il nome basta.")
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default="sistemi", verbose_name="Categoria")
+    model_code = models.CharField(max_length=80, blank=True, verbose_name="Codice prodotto",
+                                  help_text="Es. 'AXE-STD-LR-2'. Il codice principale: compare anche nelle card. "
+                                            "Lascia vuoto se il nome basta.")
+    # More codes for the same product (update 73).
+    extra_codes = StreamField(
+        [("code", blocks.CharBlock(max_length=80, label="Codice"))],
+        use_json_field=True, blank=True, verbose_name="Altri codici prodotto",
+        help_text="Aggiungi un codice per ogni riga, oltre a quello principale qui sopra.",
+    )
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, blank=True, default="",
+                                verbose_name="Categoria",
+                                help_text="La categoria in cui il prodotto compare nella barra in cima all'elenco Prodotti.")
+    # Variants of the same product (update 73), e.g. "Angel River 1" / "Angel River Pro".
+    available_models = StreamField(
+        [("model", blocks.CharBlock(max_length=120, label="Modello"))],
+        use_json_field=True, blank=True, verbose_name="Modelli disponibili",
+        help_text="Se il prodotto esiste in più varianti, scrivi il nome di ognuna. "
+                  "Vuoto = la sezione non compare.",
+    )
+    cover_position = models.CharField(
+        max_length=8, choices=COVER_POSITION_CHOICES, default="side", verbose_name="Immagine nella pagina",
+        help_text="Nella card dell'elenco Prodotti l'immagine compare comunque.",
+    )
     tagline = models.TextField(max_length=300, blank=True, verbose_name="Descrizione breve (card)",
                                help_text="Mostrata nelle card e usata come meta description se il tab Promuovi è vuoto.")
     cover_image = models.ForeignKey("wagtailimages.Image", null=True, blank=True, on_delete=models.SET_NULL,
@@ -160,6 +245,8 @@ class ProductPage(SeoMixin, Page):
 
     search_fields = Page.search_fields + [
         index.SearchField("model_code"),
+        index.SearchField("extra_codes"),
+        index.SearchField("available_models"),
         index.SearchField("tagline"),
         index.FilterField("category"),
     ]
@@ -170,11 +257,14 @@ class ProductPage(SeoMixin, Page):
     content_panels = Page.content_panels + [
         MultiFieldPanel([
             FieldPanel("model_code"),
+            FieldPanel("extra_codes"),
             FieldPanel("category"),
             FieldPanel("tagline"),
             FieldPanel("cover_image"),
+            FieldPanel("cover_position"),
             FieldPanel("show_intro"),
         ], heading="Scheda prodotto"),
+        FieldPanel("available_models"),
         FieldPanel("specs"),
         MultiFieldPanel([FieldPanel("datasheet"), FieldPanel("datasheet_url")], heading="Scheda tecnica"),
         FieldPanel("body"),
@@ -183,6 +273,24 @@ class ProductPage(SeoMixin, Page):
 
     def get_meta_description(self):
         return self.search_description or self.tagline
+
+    @property
+    def product_codes(self):
+        """Main code first, then the others; blanks and repeats left out."""
+        codes = [self.model_code] + [block.value for block in self.extra_codes]
+        seen, out = set(), []
+        for code in codes:
+            code = (code or "").strip()
+            if code and code.lower() not in seen:
+                seen.add(code.lower())
+                out.append(code)
+        return out
+
+    @property
+    def category_label(self):
+        """The category's name in this page's language ('' if not set)."""
+        language = self.locale.language_code if self.locale_id else "it"
+        return category_label(self.category, language)
 
     class Meta:
         verbose_name = "Prodotto"
