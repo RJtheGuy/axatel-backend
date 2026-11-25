@@ -7,6 +7,7 @@ cards), a picture, a table of specifications, an optional datasheet and a
 normal block body for anything else.
 """
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from rest_framework.fields import Field
 from wagtail import blocks
@@ -76,6 +77,23 @@ COVER_POSITION_CHOICES = [
 ]
 
 
+# How the picture fills its space on the cards of the Prodotti list (update 74).
+CARD_FIT_CHOICES = [
+    ("cover", "Riempi lo spazio (i bordi possono essere tagliati)"),
+    ("contain", "Immagine intera (con margini se serve)"),
+]
+CARD_FIT_PRODUCT_CHOICES = [("", "Come impostato sulla pagina Prodotti")] + CARD_FIT_CHOICES
+
+
+def _translation_source(page):
+    """The Italian (default-language) version of a page, so the card settings
+    are set once and are the same in every language."""
+    default = Locale.get_default()
+    if page.locale_id and page.locale_id != default.id:
+        return page.get_translation_or_none(default) or page
+    return page
+
+
 class DocumentAPIField(Field):
     def to_representation(self, value):
         if not value:
@@ -138,6 +156,18 @@ class ProductIndexPage(SeoMixin, Page):
     columns = models.CharField(max_length=4, choices=COLUMN_CHOICES, default="auto",
                                verbose_name="Prodotti per riga",
                                help_text="Su schermi grandi. Su tablet sono al massimo 2, sul telefono 1.")
+    # Pictures on the cards (update 74).
+    card_image_height = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=[MinValueValidator(30), MaxValueValidator(100)],
+        verbose_name="Altezza delle immagini nelle card (%)",
+        help_text="In percentuale della larghezza della card, da 30 a 100. Es. 50 = alta la metà della "
+                  "larghezza, 75 = formato 4:3, 100 = quadrata. Vuoto = come oggi (190 px).",
+    )
+    card_image_fit = models.CharField(
+        max_length=8, choices=CARD_FIT_CHOICES, default="cover",
+        verbose_name="Adattamento delle immagini nelle card",
+        help_text="Si può cambiare anche per un singolo prodotto, nella sua pagina.",
+    )
 
     parent_page_types = ["home.HomePage"]
     subpage_types = ["products.ProductPage"]
@@ -149,6 +179,8 @@ class ProductIndexPage(SeoMixin, Page):
             FieldPanel("layout"),
             FieldPanel("category_order"),
             FieldPanel("columns"),
+            FieldPanel("card_image_height"),
+            FieldPanel("card_image_fit"),
         ], heading="Disposizione delle card"),
     ]
 
@@ -166,7 +198,8 @@ class ProductIndexPage(SeoMixin, Page):
                 order.append(block.value)
                 seen.add(block.value)
         return {"layout": source.layout or "categories", "columns": source.columns or "auto",
-                "category_order": order}
+                "category_order": order, "image_height": source.card_image_height,
+                "image_fit": source.card_image_fit or "cover"}
 
     @property
     def categories(self):
@@ -193,6 +226,7 @@ class ProductPage(SeoMixin, Page):
         APIField("category"),
         APIField("category_label"),
         APIField("cover_position"),
+        APIField("card_image"),
         APIField("tagline"),
         APIField("cover_image", serializer=ImageAPIField()),
         APIField("specs"),
@@ -224,6 +258,17 @@ class ProductPage(SeoMixin, Page):
     cover_position = models.CharField(
         max_length=8, choices=COVER_POSITION_CHOICES, default="side", verbose_name="Immagine nella pagina",
         help_text="Nella card dell'elenco Prodotti l'immagine compare comunque.",
+    )
+    # This product's picture on the cards of the Prodotti list (update 74).
+    card_image_fit = models.CharField(
+        max_length=8, choices=CARD_FIT_PRODUCT_CHOICES, blank=True, default="",
+        verbose_name="Immagine nella card: adattamento",
+    )
+    card_image_width = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=[MinValueValidator(20), MaxValueValidator(100)],
+        verbose_name="Immagine nella card: larghezza (%)",
+        help_text="Da 20 a 100: rimpicciolisce l'immagine dentro il suo spazio (utile con «Immagine intera»). "
+                  "Vuoto = 100. L'altezza dello spazio è la stessa per tutte le card: si imposta sulla pagina Prodotti.",
     )
     tagline = models.TextField(max_length=300, blank=True, verbose_name="Descrizione breve (card)",
                                help_text="Mostrata nelle card e usata come meta description se il tab Promuovi è vuoto.")
@@ -262,6 +307,8 @@ class ProductPage(SeoMixin, Page):
             FieldPanel("tagline"),
             FieldPanel("cover_image"),
             FieldPanel("cover_position"),
+            FieldPanel("card_image_fit"),
+            FieldPanel("card_image_width"),
             FieldPanel("show_intro"),
         ], heading="Scheda prodotto"),
         FieldPanel("available_models"),
@@ -285,6 +332,12 @@ class ProductPage(SeoMixin, Page):
                 seen.add(code.lower())
                 out.append(code)
         return out
+
+    @property
+    def card_image(self):
+        """Card picture settings, those of the Italian page ('' / None = page default)."""
+        source = _translation_source(self)
+        return {"fit": source.card_image_fit or "", "width": source.card_image_width}
 
     @property
     def category_label(self):
