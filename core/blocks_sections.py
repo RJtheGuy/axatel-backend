@@ -159,6 +159,11 @@ class CertificationItemBlock(blocks.StructBlock):
         required=False, label="Certificato PDF (facoltativo)",
         help_text="Se scelto, cliccando il certificato si apre il PDF in una nuova scheda.",
     )
+    link = blocks.URLBlock(
+        required=False, label="Link esterno (facoltativo)",
+        help_text="Es. https://www.acquistinretepa.it/… Cliccando il certificato si apre questo sito "
+                  "in una nuova scheda. Se è scelto anche un PDF, si apre il PDF.",
+    )
 
     class Meta:
         icon = "success"
