@@ -193,7 +193,9 @@ class TeamView(APIView):
                 }
             members.append({
                 "id": member.pk,
-                "name": member.name,
+                "kind": member.kind or "person",
+                # Areas can have their name in English/French; people keep their name.
+                "name": member.translated("name", language) if member.kind == "area" else member.name,
                 "role": member.translated("role", language),
                 "bio": member.translated("bio", language),
                 "photo": photo,

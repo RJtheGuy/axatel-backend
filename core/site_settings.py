@@ -481,9 +481,31 @@ class TeamSettings(ClusterableModel, BaseSiteSetting):
         verbose_name = "Team"
 
 
+TEAM_KIND_CHOICES = [
+    ("person", "Persona"),
+    ("area", "Area / reparto (solo un riquadro con il nome, senza foto)"),
+]
+
+
 class TeamMember(ClusterableModel, Orderable):
     setting = ParentalKey(TeamSettings, related_name="members", on_delete=models.CASCADE)
-    name = models.CharField(max_length=120, verbose_name="Nome e cognome")
+    # Organigramma (update 80): an entry is a person, or an area such as
+    # "Area commerciale", drawn as a plain box under the person it reports to.
+    kind = models.CharField(
+        max_length=10,
+        choices=TEAM_KIND_CHOICES,
+        default="person",
+        verbose_name="Tipo",
+        help_text="Area: per le aree dell'organigramma (es. 'Area commerciale'). Scrivi il nome "
+                  "dell'area in «Nome e cognome» e scegli in «Riporta a» chi la guida. "
+                  "Foto e ruolo non servono.",
+    )
+    name = models.CharField(max_length=120, verbose_name="Nome e cognome",
+                            help_text="Per un'area: il nome dell'area, es. 'Area commerciale'.")
+    name_en = models.CharField(max_length=120, blank=True, verbose_name="Nome dell'area (EN)",
+                               help_text="Solo per le aree. Vuoto = il nome italiano.")
+    name_fr = models.CharField(max_length=120, blank=True, verbose_name="Nome dell'area (FR)",
+                               help_text="Solo per le aree. Vuoto = il nome italiano.")
     role = models.CharField(max_length=120, blank=True, verbose_name="Ruolo")
     role_en = models.CharField(max_length=120, blank=True, verbose_name="Ruolo (EN)")
     role_fr = models.CharField(max_length=120, blank=True, verbose_name="Ruolo (FR)")
@@ -541,7 +563,10 @@ class TeamMember(ClusterableModel, Orderable):
     department_fr = models.CharField(max_length=80, blank=True, verbose_name="Reparto (FR)")
 
     panels = [
+        FieldPanel("kind"),
         FieldRowPanel([FieldPanel("name"), FieldPanel("visible")]),
+        MultiFieldPanel([FieldRowPanel([FieldPanel("name_en"), FieldPanel("name_fr")])],
+                        heading="Nome dell'area EN / FR", classname="collapsed"),
         FieldPanel("photo"),
         FieldRowPanel([FieldPanel("role"), FieldPanel("role_en"), FieldPanel("role_fr")], heading="Ruolo"),
         FieldPanel("bio"),
